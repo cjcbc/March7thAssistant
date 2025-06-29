@@ -51,6 +51,9 @@ class Daily:
             if Date.is_next_mon_x_am(cfg.weekly_divergent_timestamp, cfg.refresh_hour):
                 if Universe.start(1, False, "divergent"):
                     cfg.save_timestamp("weekly_divergent_timestamp")
+                    log.info("1每周一次差分宇宙刷新")
+                    cfg.save_timestamp("universe_timestamp")
+                    log.info("2每周一次差分宇宙刷新")
             else:
                 log.info("每周一次差分宇宙尚未刷新")
 
@@ -138,6 +141,7 @@ class Daily:
                 "合成1次消耗品": lambda: Synthesis.consumables(),
                 "合成1次材料": lambda: Synthesis.material(),
                 "使用1件消耗品": lambda: Synthesis.use_consumables(),
+                "将任意遗器等级提升一次": lambda: Synthesis.upgrade_relic(),
                 # "完成1次「拟造花萼（金）」": lambda: Power.customize_run("拟造花萼（金）", cfg.instance_names["拟造花萼（金）"], 10, 1),
                 # "完成1次「拟造花萼（赤）」": lambda: Power.customize_run("拟造花萼（赤）", cfg.instance_names["拟造花萼（赤）"], 10, 1),
                 # "完成1次「凝滞虚影」": lambda: Power.customize_run("凝滞虚影", cfg.instance_names["凝滞虚影"], 30, 1),
@@ -148,6 +152,7 @@ class Daily:
                 "完成1次「忘却之庭」": lambda: challenge.start_memory_one(1),
                 "单场战斗中，触发3种不同属性的弱点击破": lambda: challenge.start_memory_one(1),
                 "累计触发弱点击破效果5次": lambda: challenge.start_memory_one(1),
+                "累计触发弱点击破效果10次": lambda: challenge.start_memory_one(2),
                 "累计消灭20个敌人": lambda: challenge.start_memory_one(2),
                 "利用弱点进入战斗并获胜3次": lambda: challenge.start_memory_one(3),
                 "施放终结技造成制胜一击1次": lambda: challenge.start_memory_one(1),
