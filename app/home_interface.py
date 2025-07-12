@@ -16,6 +16,8 @@ from PIL import Image
 import numpy as np
 import os
 
+import yaml
+from datetime import datetime
 
 class BannerWidget(QWidget):
     def __init__(self, parent=None):
@@ -65,6 +67,24 @@ class BannerWidget(QWidget):
             self.tr('GitHub repo'),
             self.tr('喜欢就给个星星吧\n拜托求求你啦|･ω･)'),
             "https://github.com/moesnow/March7thAssistant",
+        )
+
+        def load_last_run_time():
+            try:
+                with open("config.yaml", "r") as f:
+                    config = yaml.safe_load(f)
+                timestamp = config.get("last_run")
+                if timestamp:
+                    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                return "从未运行"
+            except:
+                return "加载时间失败"
+
+        self.linkCardView.addCard(
+            FluentIcon.DATE_TIME,
+            self.tr("上次运行时间："),
+            load_last_run_time(),
+            ""
         )
 
     def paintEvent(self, e):
