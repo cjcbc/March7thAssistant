@@ -17,6 +17,7 @@ import numpy as np
 import os
 
 import yaml
+from pathlib import Path
 from datetime import datetime
 
 class BannerWidget(QWidget):
@@ -70,15 +71,16 @@ class BannerWidget(QWidget):
         )
 
         def load_last_run_time():
-            try:
-                with open("config.yaml", "r") as f:
+            config_path = Path("config.yaml")
+            if not config_path.exists():
+                return "配置文件不存在！"
+            else:
+                with open(config_path, "r", encoding="utf-8") as f:
                     config = yaml.safe_load(f)
-                timestamp = config.get("last_run")
-                if timestamp:
-                    return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-                return "从未运行"
-            except:
-                return "加载时间失败"
+            timestamp = config.get("last_run_timestamp")
+            if timestamp:
+                return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+            return "从未运行"
 
         self.linkCardView.addCard(
             FluentIcon.DATE_TIME,
