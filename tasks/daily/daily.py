@@ -141,7 +141,7 @@ class Daily:
                 "合成1次消耗品": lambda: Synthesis.consumables(),
                 "合成1次材料": lambda: Synthesis.material(),
                 "使用1件消耗品": lambda: Synthesis.use_consumables(),
-                "将任意遗器等级提升一次": lambda: Synthesis.upgrade_relic(),
+                "将任意遗器等级提升1次": lambda: Synthesis.upgrade_relic(),
                 # "完成1次「拟造花萼（金）」": lambda: Power.customize_run("拟造花萼（金）", cfg.instance_names["拟造花萼（金）"], 10, 1),
                 # "完成1次「拟造花萼（赤）」": lambda: Power.customize_run("拟造花萼（赤）", cfg.instance_names["拟造花萼（赤）"], 10, 1),
                 # "完成1次「凝滞虚影」": lambda: Power.customize_run("凝滞虚影", cfg.instance_names["凝滞虚影"], 30, 1),
