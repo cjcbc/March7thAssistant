@@ -5,6 +5,8 @@ from module.logger import log
 from tasks.power.power import Power
 from tasks.power.instance import Instance
 import time
+import json
+import random
 
 
 class Echoofwar:
@@ -35,6 +37,14 @@ class Echoofwar:
                                 if max_count == 0:
                                     log.info("🟣开拓力 < 30")
                                     return
+                                if cfg.instance_names["历战余响"] == "随机":
+                                    with open("assets/config/instance_names.json", "r", encoding="utf-8") as f:
+                                        data = json.load(f)
+                                        category = data["历战余响"]
+                                        choices = [key for key in category.keys() if key not in ("无","随机")]
+                                        selected = random.choice(choices)
+                                        log.info(f"随机选择历战余响：{selected}")
+                                        return Instance.run("历战余响", selected, 30, 1)
                                 return Instance.run("历战余响", cfg.instance_names["历战余响"], 30, min(reward_count, max_count))
             return False
         except Exception as e:
