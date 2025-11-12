@@ -19,7 +19,7 @@
 
 <div align="center">
 
-**简体中文** | [繁體中文](./README_TW.md) | [English](./README_EN.md)
+**简体中文** | [繁體中文](./README_TW.md) | [English](./README_EN.md) | [日本語](./README_JA.md)
 
 快速上手，请访问：[使用教程](https://m7a.top/#/assets/docs/Tutorial)
 
@@ -38,7 +38,7 @@
 
 > 其中模拟宇宙调用的 [Auto_Simulated_Universe](https://github.com/CHNZYX/Auto_Simulated_Universe) 项目，锄大地调用的 [Fhoe-Rail](https://github.com/linruowuyin/Fhoe-Rail) 项目
 
-详情见 [配置文件](assets/config/config.example.yaml) 或图形界面设置 ｜🌟喜欢就给个星星吧|･ω･) 🌟｜QQ群 [点击跳转](https://qm.qq.com/q/HaWEI66m88) TG群 [点击跳转](https://t.me/+ZgH5zpvFS8o0NGI1)
+详情见 [配置文件](assets/config/config.example.yaml) 或图形界面设置 ｜🌟喜欢就给个星星吧|･ω･) 🌟｜QQ群 [点击跳转](https://qm.qq.com/q/C3IryUWCQw) TG群 [点击跳转](https://t.me/+ZgH5zpvFS8o0NGI1)
 
 ## 界面展示
 

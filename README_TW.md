@@ -19,7 +19,7 @@
 
 <div align="center">
 
-[简体中文](./README.md) | **繁體中文** | [English](./README_EN.md)
+[简体中文](./README.md) | **繁體中文** | [English](./README_EN.md) | [日本語](./README_JA.md)
 
 **繁體中文版本由 ChatGPT 生成，遊戲內語言目前僅支援簡體中文**
 
@@ -39,7 +39,7 @@
 
 > 其中模擬宇宙調用的 [Auto_Simulated_Universe](https://github.com/CHNZYX/Auto_Simulated_Universe) 項目，鋤大地調用的 [Fhoe-Rail](https://github.com/linruowuyin/Fhoe-Rail) 項目
 
-詳情見 [配置文件](assets/config/config.example.yaml) 或圖形界面設置 ｜🌟喜歡就給個星星吧|･ω･) 🌟｜QQ群 [點擊跳轉](https://qm.qq.com/q/HaWEI66m88) TG群 [點擊跳轉](https://t.me/+ZgH5zpvFS8o0NGI1)
+詳情見 [配置文件](assets/config/config.example.yaml) 或圖形界面設置 ｜🌟喜歡就給個星星吧|･ω･) 🌟｜QQ群 [點擊跳轉](https://qm.qq.com/q/C3IryUWCQw) TG群 [點擊跳轉](https://t.me/+ZgH5zpvFS8o0NGI1)
 
 ## 界面展示
 

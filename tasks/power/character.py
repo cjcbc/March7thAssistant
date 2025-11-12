@@ -37,7 +37,7 @@ class Character:
                 log.error("找不到支援按钮")
                 return False
         elif type == "ornament":
-            if not auto.click_element("支援", "text", max_retries=10, crop=(994.0 / 1920, 765.0 / 1080, 160.0 / 1920, 116.0 / 1080)):
+            if not auto.click_element("支援", "text", max_retries=10, crop=(876.0 / 1920, 868.0 / 1080, 155.0 / 1920, 54.0 / 1080)):
                 log.error("找不到支援按钮")
                 return False
         time.sleep(1)
@@ -47,13 +47,13 @@ class Character:
     def find_and_select_support(type):
         """查找并选择支援角色"""
         window = Screenshot.get_window(cfg.game_title_name)
-        _, _, width, height = Screenshot.get_window_region(window)
+        left, top, width, height = Screenshot.get_window_region(window)
 
         for i in range(cfg.borrow_scroll_times):
             for key, value in cfg.borrow_friends:
                 if key == "None":
                     continue
-                if Character.find_character_and_click(key, value, width, height):
+                if Character.find_character_and_click(key, value, left, top, width, height):
                     if Character.confirm_selection(type):
                         return True
 
@@ -66,17 +66,16 @@ class Character:
         return False
 
     @staticmethod
-    def find_character_and_click(key, value, width, height):
+    def find_character_and_click(key, value, left, top, width, height):
         """查找支援角色并点击"""
         # crop = (40.0 / 1920, 152.0 / 1080, 531.0 / 1920, 809.0 / 1080)
         crop = (0 / 1920, 0 / 1080, 593.0 / 1920, 1005.0 / 1080)
-        matchs = auto.find_element("./assets/images/share/character/" + key + ".png", "image_with_multiple_targets", 0.8,
-                                   max_retries=1, scale_range=0.9, crop=crop, relative=True)
+        matchs = auto.find_element("./assets/images/share/character/" + key + ".png", "image_with_multiple_targets", 0.8, max_retries=1, scale_range=0.9, crop=crop, relative=True)
         for match in matchs:
             top_right = (match[1][0] + width * crop[0], match[0][1] + height * crop[1])
             crop_new = (top_right[0] / width, top_right[1] / height, 402.0 / 1920, 43.0 / 1080)
             if value == "":
-                auto.click_element_with_pos(match)
+                auto.click_element_with_pos(match, (left, top))
                 time.sleep(1)
                 return True
             elif auto.click_element(value, "text", crop=crop_new, include=True):
@@ -118,7 +117,7 @@ class Character:
         Character.complete_daily_task()
         auto.press_key("esc")
         time.sleep(1)
-        auto.find_element("解除支援", "text", max_retries=10, crop=(994.0 / 1920, 765.0 / 1080, 160.0 / 1920, 116.0 / 1080))
+        auto.find_element("解除支援", "text", max_retries=10, crop=(876.0 / 1920, 868.0 / 1080, 155.0 / 1920, 54.0 / 1080))
 
     @staticmethod
     def complete_daily_task():
@@ -142,4 +141,4 @@ class Character:
         if type == "standard":
             auto.find_element("支援", "text", max_retries=10, crop=(1670 / 1920, 700 / 1080, 225 / 1920, 74 / 1080))
         elif type == "ornament":
-            auto.find_element("支援", "text", max_retries=10, crop=(994.0 / 1920, 765.0 / 1080, 160.0 / 1920, 116.0 / 1080))
+            auto.find_element("支援", "text", max_retries=10, crop=(876.0 / 1920, 868.0 / 1080, 155.0 / 1920, 54.0 / 1080))

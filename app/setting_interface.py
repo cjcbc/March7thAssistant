@@ -10,7 +10,7 @@ from .card.comboboxsettingcard1 import ComboBoxSettingCard1
 from .card.comboboxsettingcard2 import ComboBoxSettingCard2, ComboBoxSettingCardUpdateSource, ComboBoxSettingCardLog
 from .card.switchsettingcard1 import SwitchSettingCard1, SwitchSettingCardNotify, StartMarch7thAssistantSwitchSettingCard, SwitchSettingCardTeam, SwitchSettingCardImmersifier, SwitchSettingCardGardenofplenty, SwitchSettingCardEchoofwar, SwitchSettingCardHotkey
 from .card.rangesettingcard1 import RangeSettingCard1
-from .card.pushsettingcard1 import PushSettingCardInstance, PushSettingCardNotifyTemplate, PushSettingCardMirrorchyan, PushSettingCardEval, PushSettingCardDate, PushSettingCardKey, PushSettingCardTeam, PushSettingCardFriends
+from .card.pushsettingcard1 import PushSettingCardInstance, PushSettingCardInstanceChallengeCount, PushSettingCardNotifyTemplate, PushSettingCardMirrorchyan, PushSettingCardEval, PushSettingCardDate, PushSettingCardKey, PushSettingCardTeam, PushSettingCardFriends
 from .card.timepickersettingcard1 import TimePickerSettingCard1
 from module.config import cfg
 from module.notification import notif
@@ -96,13 +96,19 @@ class SettingInterface(ScrollArea):
             "instance_names",
             "./assets/config/instance_names.json"
         )
-        self.maxCalyxPerRoundNumOfAttempts = RangeSettingCard1(
-            "max_calyx_per_round_num_of_attempts",
-            [1, 6],
+        self.instanceNameChallengeCountCard = PushSettingCardInstanceChallengeCount(
+            self.tr('修改'),
             FIF.HISTORY,
-            self.tr("每轮拟造花萼挑战次数"),
-            '',
+            self.tr("副本连续挑战次数"),
+            "instance_names_challenge_count"
         )
+        # self.maxCalyxPerRoundNumOfAttempts = RangeSettingCard1(
+        #     "max_calyx_per_round_num_of_attempts",
+        #     [1, 6],
+        #     FIF.HISTORY,
+        #     self.tr("每轮拟造花萼挑战次数"),
+        #     '',
+        # )
         self.breakDownLevelFourRelicsetEnableCard = SwitchSettingCard1(
             FIF.FILTER,
             self.tr('自动分解四星遗器'),
@@ -399,7 +405,7 @@ class SettingInterface(ScrollArea):
         )
         self.weeklyDivergentEnableCard = SwitchSettingCard1(
             FIF.VPN,
-            self.tr('每周优先运行一次差分宇宙'),
+            self.tr('每两周优先运行一次差分宇宙'),
             "如需执行周期演算，请自行打开 “主页→模拟宇宙→原版运行”，然后勾选“周期演算”",
             "weekly_divergent_enable"
         )
@@ -574,6 +580,18 @@ class SettingInterface(ScrollArea):
             self.tr('启动时检测更新'),
             "新版本将更加稳定并拥有更多功能（建议启用）",
             "check_update"
+        )
+        self.pauseAfterSuccess = SwitchSettingCard1(
+            FIF.SYNC,
+            self.tr('成功后暂停程序'),
+            "如果勾选，除非循环模式，执行成功后暂停程序。",
+            "pause_after_success"
+        )
+        self.exitAfterFailure = SwitchSettingCard1(
+            FIF.SYNC,
+            self.tr('失败后直接退出'),
+            "如果勾选，那么失败后直接退出，否则失败后暂停程序。",
+            "exit_after_failure"
         )
         self.afterFinishCard = ComboBoxSettingCard2(
             "after_finish",
@@ -771,7 +789,8 @@ class SettingInterface(ScrollArea):
         self.PowerGroup.addSettingCard(self.instanceTypeCard)
         # self.PowerGroup.addSettingCard(self.calyxGoldenPreferenceCard)
         self.PowerGroup.addSettingCard(self.instanceNameCard)
-        self.PowerGroup.addSettingCard(self.maxCalyxPerRoundNumOfAttempts)
+        self.PowerGroup.addSettingCard(self.instanceNameChallengeCountCard)
+        # self.PowerGroup.addSettingCard(self.maxCalyxPerRoundNumOfAttempts)
         self.PowerGroup.addSettingCard(self.breakDownLevelFourRelicsetEnableCard)
         self.PowerGroup.addSettingCard(self.instanceTeamEnableCard)
         # self.PowerGroup.addSettingCard(self.instanceTeamNumberCard)
@@ -853,6 +872,8 @@ class SettingInterface(ScrollArea):
         self.ProgramGroup.addSettingCard(self.gamePathCard)
         # self.ProgramGroup.addSettingCard(self.importConfigCard)
         self.ProgramGroup.addSettingCard(self.checkUpdateCard)
+        self.ProgramGroup.addSettingCard(self.pauseAfterSuccess)
+        self.ProgramGroup.addSettingCard(self.exitAfterFailure)
         self.ProgramGroup.addSettingCard(self.afterFinishCard)
         self.ProgramGroup.addSettingCard(self.ScriptPathCard)
         self.ProgramGroup.addSettingCard(self.loopModeCard)
@@ -921,7 +942,7 @@ class SettingInterface(ScrollArea):
         self.testNotifyCard.clicked.connect(lambda: start_task("notify"))
 
         self.githubCard.clicked.connect(self.__openUrl("https://github.com/moesnow/March7thAssistant"))
-        self.qqGroupCard.clicked.connect(self.__openUrl("https://qm.qq.com/q/HaWEI66m88"))
+        self.qqGroupCard.clicked.connect(self.__openUrl("https://qm.qq.com/q/C3IryUWCQw"))
         self.feedbackCard.clicked.connect(self.__openUrl("https://github.com/moesnow/March7thAssistant/issues"))
 
         self.aboutCard.clicked.connect(lambda: checkUpdate(self.parent))

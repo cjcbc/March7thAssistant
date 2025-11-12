@@ -13,8 +13,8 @@ class SMTPNotifier(Notifier):
 
     def send(self, title: str, content: str, image_io=None):
         host = self.params["host"]
-        user = self.params["user"]
-        password = self.params["password"]
+        user = self.params.get("user", '')
+        password = self.params.get("password", '')
         From = self.params.get("From", user)
         To = self.params.get("To", user)
         port = self.params.get("port", 465)
@@ -44,7 +44,8 @@ class SMTPNotifier(Notifier):
             smtp = smtplib.SMTP_SSL(host, port, context=sslcontext(ssl_unverified))
         else:
             smtp = smtplib.SMTP(host, port)
-        smtp.login(user, password)
+        if user != '':
+            smtp.login(user, password)
         smtp.sendmail(From, To, msg.as_string())
         smtp.quit()
 
