@@ -52,9 +52,9 @@ class Daily:
             if Date.is_next_2weeks_mon_x_am(cfg.weekly_divergent_timestamp, cfg.refresh_hour):
                 if Universe.start(1, False, "divergent"):
                     cfg.save_timestamp("weekly_divergent_timestamp")
-                    log.info("1每周一次差分宇宙刷新")
+                    log.info("每周一次差分宇宙刷新")
                     cfg.save_timestamp("universe_timestamp")
-                    log.info("2每周一次差分宇宙刷新")
+                    log.info("每周一次差分宇宙刷新")
             else:
                 log.info("每两周一次差分宇宙尚未刷新")
 
