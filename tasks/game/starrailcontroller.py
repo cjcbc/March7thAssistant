@@ -1,15 +1,16 @@
 import time
 import pyautogui
 from typing import Literal, Optional
-from utils.gamecontroller import GameController
+from module.config.config import Config
+from module.game.local import LocalGameController
 from utils.registry.star_rail_setting import get_game_resolution, set_game_resolution, get_auto_battle_open_setting, get_is_save_battle_speed_setting, set_auto_battle_open_setting, set_is_save_battle_speed_setting
 from utils.registry.game_auto_hdr import get_game_auto_hdr, set_game_auto_hdr
 from utils.logger.logger import Logger
 
 
-class StarRailController(GameController):
-    def __init__(self, game_path: str, process_name: str, window_name: str, window_class: Optional[str], script_path: Optional[str] = None, logger: Optional[Logger] = None) -> None:
-        super().__init__(game_path, process_name, window_name, window_class, script_path=script_path, logger=logger)
+class StarRailController(LocalGameController):
+    def __init__(self, cfg: Config, logger: Optional[Logger] = None) -> None:
+        super().__init__(cfg=cfg, logger=logger)
         self.game_resolution = None
         self.game_auto_hdr = None
         self.screen_resolution = pyautogui.size()
@@ -116,7 +117,7 @@ class StarRailController(GameController):
             raise Exception("游戏分辨率比例不正确")
         else:
             if window_width != target_width or window_height != target_height:
-                self.log_warning(f"游戏分辨率: {window_width}x{window_height} ≠ {target_width}x{target_height} 可能出现未预期的错误")
+                self.log_error(f"游戏分辨率: {window_width}x{window_height} ≠ {target_width}x{target_height} 可能出现未预期的错误")
                 time.sleep(2)
             else:
                 self.log_debug(f"游戏分辨率: {window_width}x{window_height}")

@@ -1,6 +1,7 @@
 from module.screen import screen
 from module.config import cfg
 from module.logger import log
+from module.notification.notification import NotificationLevel
 from tasks.base.base import Base
 from tasks.base.team import Team
 from tasks.base.pythonchecker import PythonChecker
@@ -82,8 +83,11 @@ class Fight:
     @staticmethod
     def start():
         log.hr("准备锄大地", 0)
+        if cfg.cloud_game_enable and cfg.browser_headless_enable:
+            log.error("锄大地不支持无界面模式运行")
+            return False
 
-        game = StarRailController(cfg.game_path, cfg.game_process_name, cfg.game_title_name, 'UnityWndClass', log)
+        game = StarRailController(cfg=cfg, logger=log)
         game.check_resolution(1920, 1080)
 
         if Fight.before_start():
@@ -98,13 +102,13 @@ class Fight:
             command = [os.path.join(cfg.fight_path, "Fhoe-Rail.exe")] if cfg.fight_operation_mode == "exe" else [cfg.python_exe_path, "fhoe.py"]
             if subprocess_with_timeout(command, cfg.fight_timeout * 3600, cfg.fight_path, None if cfg.fight_operation_mode == "exe" else cfg.env):
                 cfg.save_timestamp("fight_timestamp")
-                Base.send_notification_with_screenshot(cfg.notify_template['FightCompleted'])
+                Base.send_notification_with_screenshot(cfg.notify_template['FightCompleted'], NotificationLevel.ALL)
                 return True
 
         log.error("锄大地失败")
         log_path = os.path.join(cfg.fight_path, "logs")
         log.error(f"锄大地日志路径: {log_path}")
-        Base.send_notification_with_screenshot(cfg.notify_template['FightNotCompleted'])
+        Base.send_notification_with_screenshot(cfg.notify_template['FightNotCompleted'], NotificationLevel.ERROR)
         return False
 
     @staticmethod

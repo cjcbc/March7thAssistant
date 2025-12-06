@@ -17,6 +17,7 @@ import base64
 from module.config import cfg
 from module.logger import log
 from module.notification import notif
+from module.notification.notification import NotificationLevel
 from module.ocr import ocr
 
 import tasks.game as game
@@ -30,6 +31,7 @@ from tasks.daily.fight import Fight
 from tasks.power.power import Power
 from tasks.weekly.universe import Universe
 from tasks.daily.redemption import Redemption
+from tasks.weekly.currency_wars import CurrencyWars
 
 
 def first_run():
@@ -51,9 +53,20 @@ def run_main_actions():
 
 def run_sub_task(action):
     game.start()
+
+    def currencywars(loop=False):
+        war = CurrencyWars()
+        if loop:
+            while True:
+                war.start()
+        else:
+            war.start()
+
     sub_tasks = {
         "daily": lambda: (Daily.run(), reward.start()),
         "power": Power.run,
+        "currencywars": lambda: currencywars(),
+        "currencywarsloop": lambda: currencywars(loop=True),
         "fight": Fight.start,
         "universe": Universe.start,
         "forgottenhall": lambda: challenge.start("memoryofchaos"),
@@ -91,7 +104,7 @@ def run_sub_task_update(action):
 
 
 def run_notify_action():
-    notif.notify(cfg.notify_template['TestMessage'], "./assets/app/images/March7th.jpg")
+    notif.notify(content=cfg.notify_template['TestMessage'], image="./assets/app/images/March7th.jpg", level=NotificationLevel.ALL)
     input("按回车键关闭窗口. . .")
     sys.exit(0)
 
@@ -104,7 +117,7 @@ def main(action=None):
         run_main_actions()
 
     # 子任务
-    elif action in ["daily", "power", "fight", "universe", "forgottenhall", "purefiction", "apocalyptic", "redemption"]:
+    elif action in ["daily", "power", "currencywars", "currencywarsloop", "fight", "universe", "forgottenhall", "purefiction", "apocalyptic", "redemption"]:
         run_sub_task(action)
 
     # 子任务 原生图形界面
@@ -147,7 +160,16 @@ if __name__ == "__main__":
         sys.exit(1)
     except Exception as e:
         log.error(cfg.notify_template['ErrorOccurred'].format(error=e))
-        notif.notify(cfg.notify_template['ErrorOccurred'].format(error=e))
+        # 保存错误截图
+        screenshot_path = log.save_error_screenshot()
+        # 发送通知，如果有截图则附带截图
+        notify_kwargs = {
+            'content': cfg.notify_template['ErrorOccurred'].format(error=e),
+            'level': NotificationLevel.ERROR
+        }
+        if screenshot_path:
+            notify_kwargs['image'] = screenshot_path
+        notif.notify(**notify_kwargs)
         if not cfg.exit_after_failure:
             input("按回车键关闭窗口. . .")
         sys.exit(1)

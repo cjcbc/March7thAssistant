@@ -1,5 +1,6 @@
 import time
 from tasks.base.base import Base
+from module.notification.notification import NotificationLevel
 from .basechallenge import BaseChallenge
 from module.automation.screenshot import Screenshot
 from module.screen import screen
@@ -188,7 +189,7 @@ class PureFiction(BaseChallenge):
         start_time = time.time()
         while time.time() - start_time < timeout:
             # 整间完成
-            if auto.find_element("./assets/images/purefiction/prepare_fight.png", "image", 10000, crop=(0 / 1920, 0 / 1080, 300.0 / 1920, 300.0 / 1080)):
+            if auto.find_element("./assets/images/purefiction/prepare_fight.png", "image", 50000, crop=(0 / 1920, 0 / 1080, 300.0 / 1920, 300.0 / 1080)):
                 return True
             elif auto.find_element("./assets/images/purefiction/back.png", "image", 0.9):
                 # 挑战失败
@@ -222,10 +223,10 @@ class PureFiction(BaseChallenge):
                     auto.click_element("./assets/images/zh_CN/base/click_close.png", "image", 0.9, max_retries=10)
                     time.sleep(1)
 
-                Base.send_notification_with_screenshot(cfg.notify_template['LevelCleared'].format(name=self.name, level=self.max_level))
+                Base.send_notification_with_screenshot(cfg.notify_template['LevelCleared'].format(name=self.name, level=self.max_level), NotificationLevel.ALL)
 
                 auto.press_key("esc")
                 time.sleep(1)
             else:
                 log.error("领取星琼失败")
-                Base.send_notification_with_screenshot(cfg.notify_template['LevelClearedWithIssue'].format(name=self.name, level=self.max_level))
+                Base.send_notification_with_screenshot(cfg.notify_template['LevelClearedWithIssue'].format(name=self.name, level=self.max_level), NotificationLevel.ERROR)

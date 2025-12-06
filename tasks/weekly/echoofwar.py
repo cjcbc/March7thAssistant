@@ -4,6 +4,7 @@ from module.config import cfg
 from module.logger import log
 from tasks.power.power import Power
 from tasks.power.instance import Instance
+from tasks.daily.buildtarget import BuildTarget
 import time
 import json
 import random
@@ -37,6 +38,7 @@ class Echoofwar:
                                 if max_count == 0:
                                     log.info("🟣开拓力 < 30")
                                     return
+<<<<<<< HEAD
                                 if cfg.instance_names["历战余响"] == "随机":
                                     with open("assets/config/instance_names.json", "r", encoding="utf-8") as f:
                                         data = json.load(f)
@@ -46,6 +48,13 @@ class Echoofwar:
                                         log.info(f"随机选择历战余响：{selected}")
                                         return Instance.run("历战余响", selected, 30, 1)
                                 return Instance.run("历战余响", cfg.instance_names["历战余响"], 30, min(reward_count, max_count))
+=======
+                                if cfg.build_target_enable and (target := BuildTarget.get_target_echo_instance()):
+                                    instance_name = target[1]
+                                else:
+                                    instance_name = cfg.instance_names["历战余响"]
+                                return Instance.run("历战余响", instance_name, 30, min(reward_count, max_count))
+>>>>>>> upstream/main
             return False
         except Exception as e:
             log.error(f"历战余响失败: {e}")

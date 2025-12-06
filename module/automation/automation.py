@@ -3,13 +3,12 @@ import math
 import cv2
 import numpy as np
 
-from .input import Input
 from .screenshot import Screenshot
 from utils.logger.logger import Logger
 from typing import Optional
 from utils.singleton import SingletonMeta
 from utils.image_utils import ImageUtils
-
+from module.game import get_game_controller
 from module.ocr import ocr
 
 
@@ -33,7 +32,7 @@ class Automation(metaclass=SingletonMeta):
         """
         初始化输入处理器，将输入操作如点击、移动等绑定至实例变量。
         """
-        self.input_handler = Input(self.logger)
+        self.input_handler = get_game_controller().get_input_handler()
         self.mouse_click = self.input_handler.mouse_click
         self.mouse_down = self.input_handler.mouse_down
         self.mouse_up = self.input_handler.mouse_up
@@ -108,7 +107,8 @@ class Automation(metaclass=SingletonMeta):
             else:
                 matchVal, matchLoc = ImageUtils.scale_and_match_template(screenshot, template, threshold, scale_range)  # 执行缩放并匹配模板
 
-            self.logger.debug(f"目标图片：{target.replace('./assets/images/', '')} 相似度：{matchVal:.2f}")
+            # 这里的相似度文本说明有问题，对于无mask匹配相似度越高越好。有mask匹配则是越低越好
+            self.logger.debug(f"目标图片：{target.replace('./assets/images/', '')} 相似度：{matchVal:.2f} 匹配阈值：{threshold}")
 
             # # 获取模板图像的宽度和高度
             # template_width = template.shape[1]
@@ -373,7 +373,7 @@ class Automation(metaclass=SingletonMeta):
         :param find_type: 查找类型，例如'image', 'text'等。
         :param threshold: 查找阈值，用于图像查找时的相似度匹配。
         :param max_retries: 最大重试次数。
-        :param crop: 截图的裁剪区域。
+        :param crop: 截图的裁剪区域，格式为（x坐标百分比，y坐标百分比，长百分比，宽百分比）。
         :param take_screenshot: 是否需要先截图。
         :param relative: 返回相对位置还是绝对位置。
         :param scale_range: 图像查找时的缩放范围。
@@ -393,13 +393,16 @@ class Automation(metaclass=SingletonMeta):
                 screenshot_result = self.take_screenshot(crop)
                 if not screenshot_result:
                     continue  # 如果截图失败，则跳过本次循环
-            if find_type in ['image', 'image_threshold', 'text', "min_distance_text"]:
+            if find_type in ['image', 'image_threshold', 'text', "min_distance_text", 'crop']:
                 if find_type in ['image', 'image_threshold']:
                     top_left, bottom_right, image_threshold = self.find_image_element(target, threshold, scale_range, relative)
                 elif find_type == 'text':
                     top_left, bottom_right = self.find_text_element(target, include, need_ocr, relative)
                 elif find_type == 'min_distance_text':
                     top_left, bottom_right = self.find_min_distance_text_element(target, source, source_type, include, need_ocr, position)
+                elif find_type == 'crop':
+                    top_left = (int(target[0] * self.screenshot.width) + self.screenshot_pos[0], int(target[1] * self.screenshot.height) + self.screenshot_pos[1])
+                    bottom_right = (int((target[0] + target[2]) * self.screenshot.width) + self.screenshot_pos[0], int((target[1] + target[3]) * self.screenshot.height) + self.screenshot_pos[1])
                 if top_left and bottom_right:
                     if find_type == 'image_threshold':
                         return image_threshold
@@ -415,7 +418,7 @@ class Automation(metaclass=SingletonMeta):
                 time.sleep(retry_delay)  # 在重试前等待一定时间
         return None
 
-    def click_element_with_pos(self, coordinates, offset=(0, 0), action="click"):
+    def click_element_with_pos(self, coordinates, offset=(0, 0), action="click", cnt=1):
         """
         在指定坐标上执行点击操作。
 
@@ -436,7 +439,8 @@ class Automation(metaclass=SingletonMeta):
         }
 
         if action in action_map:
-            action_map[action](x, y)
+            for _ in range(cnt):
+                action_map[action](x, y)
         else:
             raise ValueError(f"未知的动作类型: {action}")
 
@@ -460,7 +464,7 @@ class Automation(metaclass=SingletonMeta):
             return self.click_element_with_pos(coordinates, offset, action)
         return False
 
-    def get_single_line_text(self, crop=(0, 0, 1, 1), blacklist=None, max_retries=3):
+    def get_single_line_text(self, crop=(0, 0, 1, 1), blacklist=None, max_retries=3, retry_delay=0.0):
         """
         尝试多次获取屏幕截图中的单行文本。
 
@@ -468,6 +472,7 @@ class Automation(metaclass=SingletonMeta):
         crop: 裁剪区域，格式为(x1, y1, x2, y2)。
         blacklist: 需要过滤掉的字符列表。
         max_retries: 尝试识别的最大次数。
+        retry_delay: 每次重试之间的等待时间（秒），默认0.0秒。
 
         返回:
         识别到的文本，如果多次尝试后仍未识别到，则返回None。
@@ -476,5 +481,9 @@ class Automation(metaclass=SingletonMeta):
             self.take_screenshot(crop)
             ocr_result = ocr.recognize_single_line(np.array(self.screenshot), blacklist)
             if ocr_result:
+                self.logger.debug(f"OCR识别结果：{ocr_result[0]}")
                 return ocr_result[0]
+            if retry_delay > 0 and i < max_retries - 1:
+                time.sleep(retry_delay)
+        self.logger.debug("OCR未识别到任何文字")
         return None

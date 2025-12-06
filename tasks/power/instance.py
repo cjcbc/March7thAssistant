@@ -2,6 +2,7 @@ from module.screen import screen
 from module.automation import auto
 from module.logger import log
 from module.config import cfg
+from module.notification.notification import NotificationLevel
 from tasks.base.base import Base
 from tasks.base.team import Team
 from .character import Character
@@ -129,7 +130,7 @@ class Instance:
             if func():
                 if auto.matched_text == "追踪":
                     time.sleep(2)
-                    Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="指定副本未解锁"))
+                    Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="指定副本未解锁"), NotificationLevel.ERROR)
                     auto.press_key("esc")
                     auto.press_key("esc")
                     screen.wait_for_screen_change('guide3')
@@ -146,16 +147,16 @@ class Instance:
             # 等待界面完全停止
             time.sleep(1)
         if not Flag:
-            Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="未找到指定副本"))
+            Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="未找到指定副本"), NotificationLevel.ERROR)
             return False
         # 验证传送是否成功
         if "饰品提取" in instance_type:
             if not auto.find_element(instance_name, "text", max_retries=120, include=True, crop=(591.0 / 1920, 98.0 / 1080, 594.0 / 1920, 393.0 / 1080)):
-                Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="传送可能失败"))
+                Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="传送可能失败"), NotificationLevel.ERROR)
                 return False
         else:
             if not auto.find_element(instance_name.replace("2", ""), "text", max_retries=120, include=True, crop=(1172.0 / 1920, 5.0 / 1080, 742.0 / 1920, 636.0 / 1080)):
-                Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="传送可能失败"))
+                Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="传送可能失败"), NotificationLevel.ERROR)
                 return False
 
         return True
@@ -194,7 +195,7 @@ class Instance:
 
                         # 直接回到指南界面，减少中间步骤
                         log.info("切换到指南界面")
-                        screen.change_to('guide3', max_retries=3)
+                        screen.change_to('guide3', 3)
                         time.sleep(1)
 
                         # 重新准备副本并开始挑战
@@ -205,7 +206,7 @@ class Instance:
                         return False
                     time.sleep(0.1)
 
-                if auto.find_element("./assets/images/purefiction/prepare_fight.png", "image", 10000, max_retries=60, crop=(0 / 1920, 0 / 1080, 300.0 / 1920, 300.0 / 1080)):
+                if auto.find_element("./assets/images/purefiction/prepare_fight.png", "image", 50000, max_retries=60, crop=(0 / 1920, 0 / 1080, 300.0 / 1920, 300.0 / 1080)):
                     time.sleep(1)
 
                     # 使用秘技
@@ -218,7 +219,7 @@ class Instance:
                         time.sleep(1)
                     return True
                 elif auto.find_element("开始挑战", "text", max_retries=1, crop=(1558.0 / 1920, 939.0 / 1080, 216.0 / 1920, 70.0 / 1080)):
-                    Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="无法开始挑战"))
+                    Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="无法开始挑战"), NotificationLevel.ERROR)
                     auto.press_key("esc")
                     time.sleep(2)
                     auto.press_key("esc")
@@ -276,7 +277,7 @@ class Instance:
                                 log.info("遗器分解完成")
 
                                 log.info("切换到指南界面")
-                                screen.change_to('guide3', max_retries=3)  # 增加重试次数
+                                screen.change_to('guide3', 3)  # 增加重试次数
                                 time.sleep(1)
 
                                 # 重新准备副本并开始挑战
