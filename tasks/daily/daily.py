@@ -145,12 +145,7 @@ class Daily:
 
         if len(cfg.daily_tasks) > 0:
             task_functions = {
-<<<<<<< HEAD
-                "登录游戏": lambda: True,
-                "拍照1次": lambda: Photo.photograph(),
-                "使用1次「万能合成机」": lambda: Synthesis.material(),
-                "将任意遗器等级提升1次": lambda: Synthesis.upgrade_relic(),
-=======
+                
                 "登录游戏": (lambda: True, 100),
                 "派遣1次委托": (lambda: False, 100), # 没有实现但有可能已完成,只检测是否完成
                 "累计消耗120点开拓力": (lambda: False, 200), # 没有实现但有可能已完成,只检测是否完成
@@ -161,34 +156,13 @@ class Daily:
                 "完成1次「侵蚀隧洞」":(lambda: False, 100),
                 "完成1次「历战余响」":(lambda: False, 100),
                 "将任意角色等级提升1次":(lambda: False, 100),
-                "将任意遗器等级提升1次":(lambda: False, 100),
+                "将任意遗器等级提升1次":(lambda: Synthesis.upgrade_relic(), 100),
                 "将任意光锥等级提升1次":(lambda: False, 100),
                 "分解任意1件遗器":(lambda: False, 100),
                 "完成1个日常任务":(lambda: False, 100),
                 "累计消灭20个敌人": (lambda: challenge.start_memory_one(2), 100),
                 "使用1次「万能合成机」": (lambda: Synthesis.material(), 100),
->>>>>>> upstream/main
-                # "合成1次消耗品": lambda: Synthesis.consumables(),
-                # "合成1次材料": lambda: Synthesis.material(),
-                # "使用1件消耗品": lambda: Synthesis.use_consumables(),
-                # "完成1次「拟造花萼（金）」": lambda: Power.customize_run("拟造花萼（金）", cfg.instance_names["拟造花萼（金）"], 10, 1),
-                # "完成1次「拟造花萼（赤）」": lambda: Power.customize_run("拟造花萼（赤）", cfg.instance_names["拟造花萼（赤）"], 10, 1),
-                # "完成1次「凝滞虚影」": lambda: Power.customize_run("凝滞虚影", cfg.instance_names["凝滞虚影"], 30, 1),
-                # "完成1次「侵蚀隧洞」": lambda: Power.customize_run("侵蚀隧洞", cfg.instance_names["侵蚀隧洞"], 40, 1),
-                # "完成1次「历战余响」": lambda: Power.customize_run("历战余响", cfg.instance_names["历战余响"], 30, 1),
-<<<<<<< HEAD
-                "累计施放2次秘技": lambda: HimekoTry.technique(),
-                "累计击碎3个可破坏物": lambda: HimekoTry.item(),
-                "完成1次「忘却之庭」": lambda: challenge.start_memory_one(1),
-                "单场战斗中，触发3种不同属性的弱点击破": lambda: challenge.start_memory_one(1),
-                "累计触发弱点击破效果5次": lambda: challenge.start_memory_one(1),
-                "累计触发弱点击破效果10次": lambda: challenge.start_memory_one(2),
-                "累计消灭20个敌人": lambda: challenge.start_memory_one(2),
-                "利用弱点进入战斗并获胜3次": lambda: challenge.start_memory_one(3),
-                "施放终结技造成制胜一击1次": lambda: challenge.start_memory_one(1),
-                "通关「模拟宇宙」（任意世界）的1个区域": lambda: Universe.run_daily(),
-                "完成1次「差分宇宙」或「模拟宇宙」": lambda: Universe.run_daily(),
-=======
+
                 "拍照1次": (lambda: Photo.photograph(), 100),
                 "累计施放2次秘技": (lambda: HimekoTry.technique(), 200),
                 "累计击碎3个可破坏物": (lambda: HimekoTry.item(), 200),
@@ -200,7 +174,7 @@ class Daily:
                 "通关「模拟宇宙」（任意世界）的1个区域": (lambda: Universe.run_daily(), 500),
                 "完成1次「差分宇宙」或「模拟宇宙」": (lambda: Universe.run_daily(), 500),
                 "完成1次「差分宇宙」或「货币战争」": (lambda: False, 500) # 没有实现但有可能已完成,只检测是否完成
->>>>>>> upstream/main
+
             }
             # 用来统计实训分数
             current_score = 0
