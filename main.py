@@ -19,11 +19,11 @@ from module.logger import log
 from module.notification import notif
 from module.notification.notification import NotificationLevel
 from module.ocr import ocr
+from utils.screenshot_util import save_error_screenshot
 
 import tasks.game as game
 import tasks.reward as reward
 import tasks.challenge as challenge
-import tasks.tool as tool
 import tasks.version as version
 
 from tasks.daily.daily import Daily
@@ -128,9 +128,6 @@ def main(action=None):
     elif action in ["universe_update", "fight_update"]:
         run_sub_task_update(action)
 
-    elif action in ["screenshot", "plot"]:
-        tool.start(action)
-
     elif action == "game":
         game.start()
 
@@ -161,7 +158,7 @@ if __name__ == "__main__":
     except Exception as e:
         log.error(cfg.notify_template['ErrorOccurred'].format(error=e))
         # 保存错误截图
-        screenshot_path = log.save_error_screenshot()
+        screenshot_path = save_error_screenshot(log)
         # 发送通知，如果有截图则附带截图
         notify_kwargs = {
             'content': cfg.notify_template['ErrorOccurred'].format(error=e),
