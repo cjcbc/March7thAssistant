@@ -93,14 +93,21 @@ class CloudGameController(GameControllerBase):
             browser_path = self.INTEGRATED_BROWSER_PATH
             driver_path = self.INTEGRATED_DRIVER_PATH
             if not os.path.exists(browser_path) or not os.path.exists(driver_path):
-                self.log_info("正在下载浏览器和驱动...")
                 args = ["--browser", browser_type,
                         "--cache-path", self.BROWSER_INSTALL_PATH,
                         "--browser-version", self.INTEGRATED_BROWSER_VERSION,
                         "--force-browser-download",
                         "--skip-driver-in-path",
                         "--skip-browser-in-path"]
+                if self.cfg.browser_download_use_mirror:
+                    self.log_info(f"正在使用镜像源，浏览器镜像源：{self.cfg.browser_mirror_urls['chrome']}，"
+                                  f"驱动镜像源：{self.cfg.browser_mirror_urls['chromedriver']}")
+                    args.extend([
+                        "--browser-mirror-url", self.cfg.browser_mirror_urls["chrome"],
+                        "--driver-mirror-url", self.cfg.browser_mirror_urls["chromedriver"],
+                    ])
                 try:
+                    self.log_info("正在下载浏览器和驱动...")
                     SeleniumManager().binary_paths(args)
                 except WebDriverException as e:
                     raise Exception(f"浏览器和驱动下载失败：{e}")
@@ -110,6 +117,15 @@ class CloudGameController(GameControllerBase):
                     "--cache-path", self.BROWSER_INSTALL_PATH,
                     "--avoid-browser-download",
                     "--skip-driver-in-path"]
+            if self.cfg.browser_download_use_mirror:
+                if browser_type == "chrome":
+                    args.extend([
+                        "--driver-mirror-url", self.cfg.browser_mirror_urls["chromedriver"]
+                    ])
+                elif browser_type == "edge":
+                    args.extend([
+                        "--driver-mirror-url", self.cfg.browser_mirror_urls["edgedriver"]
+                    ])
             try:
                 result = SeleniumManager().binary_paths(args)
             except WebDriverException as e:
@@ -198,6 +214,8 @@ class CloudGameController(GameControllerBase):
             self.log_error("如果仍然存在问题，请更换浏览器重试")
             raise Exception("浏览器启动失败")
         
+        if not self.cfg.cloud_game_fullscreen_enable:
+            self.driver.set_window_size(1920, 1120)
         if first_run or not self.cfg.browser_persistent_enable:
             self._load_initial_local_storage()
         if self.cfg.auto_battle_detect_enable:
@@ -381,6 +399,9 @@ class CloudGameController(GameControllerBase):
                 self.log_info("已关闭残留的 chromedriver 进程")
         except Exception as e:
             self.log_warning(f"退出时清理 chromedriver 进程失败: {e}")
+    
+    def download_intergrated_browser(self) -> bool:
+        self._prepare_browser_and_driver(browser_type="chrome", integrated=True)
 
     def is_integrated_browser_downloaded(self) -> bool:
         """当前是否已经下载内置浏览器"""
@@ -397,7 +418,7 @@ class CloudGameController(GameControllerBase):
         for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
             if proc.info['name'] in ('chrome.exe', 'msedge.exe'):
                 cmdline = proc.info['cmdline']
-                if self.BROWSER_TAG in cmdline and (headless is None or (headless and "--headless=new" in cmdline)):
+                if self.BROWSER_TAG in cmdline and (headless is None or (headless == ("--headless=new" in cmdline))):
                     all_proc.append(proc)
         return all_proc
                     
@@ -551,7 +572,8 @@ class CloudGameController(GameControllerBase):
         return self.driver.execute_cdp_cmd(cmd, cmd_args)
     
     def get_window_handle(self) -> int:
-        return self.driver.current_window_handle
+        import win32gui
+        return win32gui.FindWindow(None, "云·星穹铁道")
     
     def switch_to_game(self) -> bool:
         if self.cfg.browser_headless_enable:
@@ -563,6 +585,23 @@ class CloudGameController(GameControllerBase):
     def get_input_handler(self):
         from module.automation.cdp_input import CdpInput
         return CdpInput(cloud_game=self, logger=self.logger)
+    
+    def copy(self, text):
+        self.driver.execute_script("""
+            (function copy(text) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+
+                document.body.removeChild(ta);
+            })(arguments[0]);
+        """, text)
 
     def change_auto_battle(self, status: bool) -> None:
         """从 local storage 中读取并修改 auto battle"""

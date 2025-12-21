@@ -5,12 +5,12 @@ from module.notification.notification import NotificationLevel
 from tasks.base.base import Base
 from tasks.base.team import Team
 from tasks.base.pythonchecker import PythonChecker
-from tasks.game.starrailcontroller import StarRailController
 from utils.command import subprocess_with_timeout
 import subprocess
 import sys
 import os
 from module.config import fhoe_config
+from utils.console import pause_on_error, pause_and_retry
 
 
 class Fight:
@@ -31,7 +31,7 @@ class Fight:
                     break
                 if url is None:
                     log.error("没有找到可用更新，请稍后再试")
-                    input("按回车键关闭窗口. . .")
+                    pause_on_error()
                     sys.exit(0)
                 update_handler = UpdateHandler(url, cfg.fight_path, "Fhoe-Rail", os.path.join(cfg.fight_path, "map"))
                 update_handler.run()
@@ -68,7 +68,7 @@ class Fight:
                            FastestMirror.get_pypi_mirror(), "pip", "--upgrade"])
             while not subprocess.run([cfg.python_exe_path, "-m", "pip", "install", "-i", FastestMirror.get_pypi_mirror(), "-r", "requirements.txt"], check=True, cwd=cfg.fight_path):
                 log.error("依赖安装失败")
-                input("按回车键重试. . .")
+                pause_and_retry()
             log.info("依赖安装成功")
             cfg.set_value("fight_requirements", True)
 
@@ -86,9 +86,6 @@ class Fight:
         if cfg.cloud_game_enable and cfg.browser_headless_enable:
             log.error("锄大地不支持无界面模式运行")
             return False
-
-        game = StarRailController(cfg=cfg, logger=log)
-        game.check_resolution(1920, 1080)
 
         if Fight.before_start():
             # 切换队伍

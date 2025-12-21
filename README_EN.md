@@ -37,8 +37,10 @@ If you encounter any issues, please check the [FAQ](https://m7a.top/#/assets/doc
 ## Feature Overview
 
 - **Daily Tasks**: Stamina recovery, daily training, claiming rewards, commissions, and farming.
-- **Weekly Tasks**: History of Forgotten Echoes, Simulated Universe, and Forgotten Hall.
-- Push notifications for the completion of daily tasks, automatically triggered at 4 AM or when stamina recovers to a specified value.
+- **Weekly Tasks**: History of Forgotten Echoes, Currency Wars, Simulated Universe, and Forgotten Hall.
+- **Gacha Record Export**: Supports [UIGF](https://uigf.org/zh/standards/uigf.html)/[SRGF](https://uigf.org/zh/standards/srgf.html) standards, **automatic dialogue**
+- Push notifications for the completion of daily tasks and other tasks.
+- Automatically start when tasks refresh or when stamina recovers to a specified value.
 - Sound notifications upon task completion, with the option to automatically close the game or shut down the computer.
 
 > The Simulated Universe feature utilizes the [Auto_Simulated_Universe](https://github.com/CHNZYX/Auto_Simulated_Universe) project, while farming employs the [Fhoe-Rail](https://github.com/linruowuyin/Fhoe-Rail) project.
@@ -64,9 +66,57 @@ If you need to use the **Task Scheduler** for scheduled runs or want to execute 
 
 To check for updates, click the button at the bottom of the graphical interface settings or double-click `March7th Updater.exe`.
 
+### Command Line Arguments
+
+The GUI `March7th Launcher.exe` supports command line arguments so you can launch directly into a specific task:
+
+```bash
+# Show help
+March7th Launcher.exe -h
+
+# List all tasks
+March7th Launcher.exe -l
+
+# Launch GUI and run full workflow
+March7th Launcher.exe main
+
+# Launch GUI and run Daily Training
+March7th Launcher.exe daily
+
+# Auto-exit after task completes successfully (use with TASK)
+March7th Launcher.exe main -e
+```
+
+<details>
+<summary>Available Tasks</summary>
+
+| Task | Description |
+|------|-------------|
+| main | Full run |
+| daily | Daily Training |
+| power | Spend stamina |
+| currencywars | Credit Battle |
+| currencywarsloop | Credit Battle loop |
+| fight | Cavern farming |
+| universe | Simulated Universe |
+| forgottenhall | Forgotten Hall |
+| purefiction | Pure Fiction |
+| apocalyptic | Apocalyptic Shadow |
+| redemption | Redeem codes |
+| universe_gui | Simulated Universe (native GUI) |
+| fight_gui | Cavern (native GUI) |
+| universe_update | Simulated Universe update |
+| fight_update | Cavern update |
+| game | Launch game |
+| notify | Test notification |
+
+</details>
+
 ## Running from Source
 
 If you are a complete beginner, please use the download and installation method mentioned above, and there's no need to proceed further.
+
+We recommend using Python 3.12 or newer.
 
 ```cmd
 # Installation (using venv is recommended)

@@ -1,6 +1,6 @@
 # coding:utf-8
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QScroller, QScrollerProperties
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import qconfig, ScrollArea, PrimaryPushButton, InfoBar, InfoBarPosition, PushButton, MessageBox
 from .common.style_sheet import StyleSheet
@@ -75,6 +75,14 @@ class WarpInterface(ScrollArea):
         # self.vBoxLayout.setSpacing(28)
         self.vBoxLayout.setContentsMargins(36, 0, 36, 0)
         self.vBoxLayout.addWidget(self.contentLabel, 0, Qt.AlignTop)
+
+        QScroller.grabGesture(self.viewport(), QScroller.ScrollerGestureType.LeftMouseButtonGesture)
+        scroller = QScroller.scroller(self.viewport())
+        scroller_props = scroller.scrollerProperties()
+        scroller_props.setScrollMetric(QScrollerProperties.ScrollMetric.OvershootDragDistanceFactor, 0.05)
+        scroller_props.setScrollMetric(QScrollerProperties.ScrollMetric.OvershootScrollDistanceFactor, 0.05)
+        scroller_props.setScrollMetric(QScrollerProperties.ScrollMetric.DecelerationFactor, 0.5)
+        scroller.setScrollerProperties(scroller_props)
 
     def __connectSignalToSlot(self):
         self.updateBtn.clicked.connect(self.__onUpdateBtnClicked)
@@ -361,7 +369,7 @@ class WarpInterface(ScrollArea):
             self.exportBtn.setEnabled(True)
             self.exportExcelBtn.setEnabled(True)
         except Exception as e:
-            content = "抽卡记录为空，请先打开游戏内抽卡记录，再点击更新数据即可。\n\n你也可以从其他支持 SRGF 数据格式的应用导入数据，例如 StarRail Warp Export 或 Starward 等。\n\n复制链接功能可用于小程序或其他软件。"
+            content = "抽卡记录为空，请先打开游戏内抽卡记录，再点击更新数据即可。\n\n你也可以从其他支持 UIGF/SRGF 数据格式的应用导入数据，例如 StarRail Warp Export 或 Starward 等。\n\n复制链接功能可用于小程序或其他软件。"
             self.clearBtn.setEnabled(False)
             self.exportBtn.setEnabled(False)
             self.exportExcelBtn.setEnabled(False)

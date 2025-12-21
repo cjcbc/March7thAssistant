@@ -37,7 +37,7 @@ game_path: C:\Program Files\Star Rail\Game\StarRail.exe # 游戏安装路径。
 # 云崩铁配置
 cloud_game_enable: False # 是否启动云游戏
 cloud_game_fullscreen_enable: True # 云崩铁是否全屏运行
-cloud_game_max_queue_time: 10 # 最大排队等待时间（分钟）
+cloud_game_max_queue_time: 60 # 最大排队等待时间（分钟）
 # cloud_game_video_quality: '0' # 云崩铁画质 '0'(超高清)，'1'（高清）, '2'（标清）, '3'（低清）
 # cloud_game_smooth_first_enable: False # 是否流畅优先
 # cloud_game_status_bar_enable: False # 是否显示网速
@@ -55,8 +55,15 @@ browser_persistent_enable: True # 是否允许浏览器保存数据（登录状�
 browser_scale_factor: 1.0 # 浏览器的缩放比，如果云游戏画面过小/过大，可调整这个选项
 browser_launch_argument: [] # 浏览器启动的额外参数，如 "--auto-open-devtools-for-tabs"
 browser_debug_port: 9222 # 浏览器 Debug 端口，应确保该端口不被占用
+browser_download_use_mirror: True # 是否使用镜像下载浏览器和驱动
+browser_mirror_urls:
+  chrome: https://registry.npmmirror.com/-/binary/chrome-for-testing/
+  chromedriver: https://registry.npmmirror.com/-/binary/chrome-for-testing/
+  edgedriver: https://registry.npmmirror.com/-/binary/edgedriver/
 
 # 副本设置
+# 体力计划列表，每项包含副本类型、副本名称和剩余次数，例如：[["拟造花萼（金）", "回忆之蕾", 10], ["侵蚀隧洞", "睿治之径", 5]]
+power_plan: []
 instance_type: 拟造花萼（金） # 设置副本类型，可选值：拟造花萼（金）、拟造花萼（赤）、凝滞虚影、侵蚀隧洞、饰品提取。
 calyx_golden_preference: Jarilo-VI # 设置拟造花萼（金）偏好地区，可选值："雅利洛-VI"（Jarilo-VI）、仙舟「罗浮」（XianzhouLuofu）、匹诺康尼（Penacony）。
 instance_names:
@@ -124,6 +131,8 @@ reward_mail_enable: true # 是否领取邮件奖励。true 开启，false 关闭
 reward_assist_enable: true # 是否领取支援奖励。true 开启，false 关闭。
 reward_quest_enable: true # 是否领取每日实训奖励。true 开启，false 关闭。
 reward_srpass_enable: true # 是否领取无名勋礼奖励。true 开启，false 关闭。
+reward_redemption_code_enable: true # 是否领取兑换码奖励。true 开启，false 关闭。
+reward_achievement_enable: false # 是否领取成就奖励。true 开启，false 关闭。
 
 # 日常任务设置
 daily_enable: true # 是否启用日常任务。true 开启，false 关闭。
@@ -187,6 +196,10 @@ fight_timestamp: 0 # 上次运行锄大地的时间戳，用于记录和控制�
 fight_allow_map_buy: 不配置 # 购买代币与过期邮包
 fight_allow_snack_buy: 不配置 # 购买秘技零食并合成零食
 fight_main_map: "0" # 优先星球 {"空间站": "1", "雅利洛": "2", "仙舟": "3", "匹诺康尼": "4", "翁法罗斯": "5"}, "不配置": "0"
+
+# Genshin_StarRail_fps_unlocker 配置
+genshin_starRail_fps_unlocker_allow: false
+genshin_starRail_fps_unlocker_path: .\3rdparty\Genshin_StarRail_fps_unlocker
 
 # 忘却之庭配置
 forgottenhall_enable: false # 是否启用混沌回忆功能。true 开启，false 关闭。
@@ -300,11 +313,22 @@ hotkey_technique: e # 设置游戏内使用秘技的按键。
 hotkey_map: m # 设置打开地图的按键。
 hotkey_warp: f3 # 设置打开跃迁的按键。
 
+# 图形界面快捷键设置
+hotkey_stop_task: f10 # 设置停止任务的全局快捷键（支持后台）。
+
+# 定时运行设置
+scheduled_run_enable: false # 是否启用定时运行。true 启用，false 不启用。
+scheduled_run_time: "04:00" # 定时运行时间，格式为 HH:mm（24小时制）。
+
 # 是否在多显示器上进行截屏（若开启无法正确运行请关闭）
 all_screens: true
 
+# 关闭窗口行为设置
+close_window_action: ask # 关闭窗口时的行为，可选值："ask"（询问）, "minimize"（最小化到托盘）, "close"（关闭程序）
+
 # 更新配置
 redemption_code: [] # 兑换码列表
+already_used_codes: [] # 已使用兑换码列表
 update_prerelease_enable: false # 是否加入预览版更新渠道。true 加入，false 不加入。
 update_full_enable: true # 更新时是否下载完整包。true 下载，false 不下载。
 auto_update: false
@@ -477,9 +501,13 @@ notify_kook_target_id: "" # 接收消息的目标ID（用户ID或频道ID）。
 notify_kook_chat_type: "1" # 可选参数，消息类型，"1" 表示私聊，"9" 表示频道聊天，默认为 "1"。
 
 # Webhook 通知配置
-# 支持发送截图，向指定URL发送HTTP POST请求推送通知
+# 支持发送截图，支持自定义HTTP请求方法、Headers和Body
+# 如果不配置 notify_webhook_method、notify_webhook_headers、notify_webhook_body，则默认使用POST方法发送JSON格式数据 {title, content}
 notify_webhook_enable: false # 是否启用 Webhook 通知。true 开启，false 关闭。
 notify_webhook_url: "" # Webhook 接收地址，例如 http://localhost:8080/notify
+notify_webhook_method: "" # 可选参数，HTTP请求方法，支持 GET/POST/PUT/DELETE 等，默认为 POST
+notify_webhook_headers: "" # 可选参数，自定义HTTP Headers，JSON格式字符串，例如 {"Authorization": "Bearer token", "Custom-Header": "value"}。如果body为字符串且需要特定Content-Type，请明确指定。
+notify_webhook_body: "" # 可选参数，自定义请求体模板，JSON格式或字符串。支持占位符 {title}、{content}、{image}（Base64编码）。例如 {"msg": "{title}: {content}", "img": "{image}"}
 
 # 自定义通知配置
 # 支持发送截图

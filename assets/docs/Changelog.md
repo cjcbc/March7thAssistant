@@ -1,12 +1,39 @@
 # 更新日志
 
-## v2025.12.12
+## v2025.12.21
+- 支持大丽花和三月七·冬去煦至 [#813](https://github.com/moesnow/March7thAssistant/pull/813) @loader3229
+- 添加成就奖励领取功能 [#811](https://github.com/moesnow/March7thAssistant/pull/811) @g60cBQ
+- 添加自动获取兑换码并领取功能
+- 恢复触屏模式功能支持
+- 优化定时运行任务的触发逻辑
+- 优化货币战争支持未结算对局处理
+- 完整包现在内置云游戏专用浏览器 [#815](https://github.com/moesnow/March7thAssistant/pull/815) @Patrick16262
+- 修复回归用户无法正确识别活动页面
+- 修复特定情况下体力计划错误判定无法执行
+- 修复启用培养计划后副本连续挑战次数错误
+- 修复云·星穹铁道后台运行时剪贴板失效的问题 [#816](https://github.com/moesnow/March7thAssistant/pull/816) @Patrick16262
+- 修复使用云游戏无法快速启动锄大地
 
+## v2025.12.16
+- 新增日志界面并优化任务执行方式
+- 图形界面添加触摸滚动支持 [#799](https://github.com/moesnow/March7thAssistant/pull/799) @g60cBQ
+- 图形界面支持最小化到托盘
+- 云游戏下载使用国内镜像源加速 [#792](https://github.com/moesnow/March7thAssistant/pull/792) @Patrick16262
+- 优化和修复云游戏若干问题 [#800](https://github.com/moesnow/March7thAssistant/pull/800) [#804](https://github.com/moesnow/March7thAssistant/pull/804) @Patrick16262
+- 优化 WebHook 推送支持更多配置项
+- 修复自动主题功能未正常运行
+- 修复执行差分宇宙积分奖励时类别选择错误
+- 修复语言非中文时日志界面显示异常
+
+## v2025.12.13
+
+- 支持体力计划
 - 设置界面优化
 - 双倍活动支持读取培养计划 [#751](https://github.com/moesnow/March7thAssistant/pull/751) @g60cBQ
 - 现在判断每日实训完成后会立即领取奖励
 - 饰品提取未配置角色时自动选择第一个队伍 [#788](https://github.com/moesnow/March7thAssistant/pull/788) @g60cBQ
 - 解锁帧率和自动修改分辨率功能适配国际服
+- 配置文件变化后自动重载图形界面
 
 ## v2025.12.10
 

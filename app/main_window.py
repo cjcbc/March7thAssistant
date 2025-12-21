@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QFileSystemWatcher, pyqtSignal, QObject
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QAction
 
 from contextlib import redirect_stdout
 
@@ -8,7 +8,7 @@ with redirect_stdout(None):
     from app.tools.game_starter import GameStartStatus, GameLaunchThread
     from qfluentwidgets import NavigationItemPosition, MSFluentWindow, SplashScreen, setThemeColor, NavigationBarPushButton, toggleTheme, setTheme, Theme
     from qfluentwidgets import FluentIcon as FIF
-    from qfluentwidgets import InfoBar, InfoBarPosition
+    from qfluentwidgets import InfoBar, InfoBarPosition, SystemTrayMenu
 
 from .home_interface import HomeInterface
 from .help_interface import HelpInterface
@@ -16,6 +16,8 @@ from .help_interface import HelpInterface
 from .warp_interface import WarpInterface
 from .tools_interface import ToolsInterface
 from .setting_interface import SettingInterface
+from .log_interface import LogInterface
+from .common.signal_bus import signalBus
 
 from .card.messagebox_custom import MessageBoxSupport
 from .tools.check_update import checkUpdate
@@ -26,19 +28,75 @@ from .tools.disclaimer import disclaimer
 from module.config import cfg
 from module.game import get_game_controller
 import base64
+import os
+
+
+class ConfigWatcher(QObject):
+    """配置文件监视器"""
+    config_changed = pyqtSignal()
+
+    def __init__(self, config_path, parent=None):
+        super().__init__(parent)
+        self.config_path = config_path
+        self.watcher = QFileSystemWatcher()
+        self.debounce_timer = None
+
+        # 监视配置
+        if os.path.exists(self.config_path):
+            self.watcher.addPath(self.config_path)
+            self.watcher.fileChanged.connect(self._on_config_changed)
+
+    def _on_config_changed(self, path):
+        """检测到文件变化，延迟处理避免频繁触发"""
+        from PyQt5.QtCore import QTimer
+
+        # 清除之前的定时器
+        if self.debounce_timer:
+            self.debounce_timer.stop()
+            self.debounce_timer.deleteLater()
+
+        # 创建新的定时器，延迟1秒处理（避免文件写入过程中多次触发）
+        self.debounce_timer = QTimer()
+        self.debounce_timer.setSingleShot(True)
+        self.debounce_timer.timeout.connect(self._emit_change)
+        self.debounce_timer.start(1000)
+
+    def _emit_change(self):
+        """检查文件是否真的改变，然后发送信号"""
+        if os.path.exists(self.config_path) and cfg.is_config_changed():
+            self.config_changed.emit()
 
 
 class MainWindow(MSFluentWindow):
-    def __init__(self):
+    def __init__(self, task=None, exit_on_complete=False):
         super().__init__()
+        self.startup_task = task  # 保存启动时要执行的任务
+        self.exit_on_complete = exit_on_complete  # 任务完成后是否退出
+
         self.initWindow()
 
         self.initInterface()
         self.initNavigation()
+        self.initSystemTray()
 
-        # 检查更新
-        checkUpdate(self, flag=True)
-        checkAnnouncement(self)
+        # 初始化配置文件监视器
+        self.config_watcher = ConfigWatcher(os.path.abspath(cfg.config_path), self)
+        self.config_watcher.config_changed.connect(self._on_config_file_changed)
+
+        # 如果有启动任务，延迟执行
+        if self.startup_task:
+            from PyQt5.QtCore import QTimer
+            QTimer.singleShot(1000, self._executeStartupTask)
+        else:
+            # 检查更新
+            checkUpdate(self, flag=True)
+            checkAnnouncement(self)
+
+    def _executeStartupTask(self):
+        """执行启动时指定的任务"""
+        if self.startup_task:
+            from tasks.base.tasks import start_task
+            start_task(self.startup_task)
 
     def initWindow(self):
         self.setMicaEffectEnabled(False)
@@ -76,7 +134,15 @@ class MainWindow(MSFluentWindow):
         # self.changelogInterface = ChangelogInterface(self)
         self.warpInterface = WarpInterface(self)
         self.toolsInterface = ToolsInterface(self)
+        self.logInterface = LogInterface(self)
         self.settingInterface = SettingInterface(self)
+
+        # 连接任务启动信号
+        signalBus.startTaskSignal.connect(self._onStartTask)
+        # 连接热键配置改变信号
+        signalBus.hotkeyChangedSignal.connect(self._onHotkeyChanged)
+        # 连接任务完成信号
+        self.logInterface.taskFinished.connect(self._onTaskFinished)
 
     def initNavigation(self):
         self.addSubInterface(self.homeInterface, FIF.HOME, self.tr('主页'))
@@ -91,11 +157,19 @@ class MainWindow(MSFluentWindow):
             self.startGame,
             NavigationItemPosition.BOTTOM)
 
-        self.navigationInterface.addWidget(
-            'themeButton',
-            NavigationBarPushButton(FIF.BRUSH, '主题', isSelectable=False),
-            lambda: toggleTheme(lazy=True),
-            NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.logInterface, FIF.COMMAND_PROMPT, self.tr('日志'), position=NavigationItemPosition.BOTTOM)
+
+        # self.navigationInterface.addWidget(
+        #     'refreshButton',
+        #     NavigationBarPushButton(FIF.SYNC, '刷新', isSelectable=False),
+        #     self._on_config_file_changed,
+        #     NavigationItemPosition.BOTTOM)
+
+        # self.navigationInterface.addWidget(
+        #     'themeButton',
+        #     NavigationBarPushButton(FIF.BRUSH, '主题', isSelectable=False),
+        #     lambda: toggleTheme(lazy=True),
+        #     NavigationItemPosition.BOTTOM)
 
         self.navigationInterface.addWidget(
             'avatar',
@@ -117,12 +191,242 @@ class MainWindow(MSFluentWindow):
         if not cfg.get_value(base64.b64decode("YXV0b191cGRhdGU=").decode("utf-8")):
             disclaimer(self)
 
-    # main_window.py 只需修改关闭事件
+    def initSystemTray(self):
+        """初始化系统托盘"""
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setIcon(QIcon('./assets/logo/March7th.ico'))
+        self.tray_icon.setToolTip('March7th Assistant')
+
+        # 创建托盘菜单
+        tray_menu = SystemTrayMenu(parent=self)
+        tray_menu.aboutToShow.connect(self._on_tray_menu_about_to_show)
+
+        # 显示主界面
+        show_action = QAction('显示主界面', self)
+        show_action.triggered.connect(self.showNormal)
+        show_action.triggered.connect(self.activateWindow)
+        tray_menu.addAction(show_action)
+
+        # 完整运行
+        run_action = QAction('完整运行', self)
+        run_action.triggered.connect(self.startFullTask)
+        tray_menu.addAction(run_action)
+
+        tray_menu.addSeparator()
+
+        # 退出程序
+        quit_action = QAction('退出', self)
+        quit_action.triggered.connect(self.quitApp)
+        tray_menu.addAction(quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.onTrayIconActivated)
+        self.tray_icon.show()
+
+    def onTrayIconActivated(self, reason):
+        """托盘图标被激活时的处理"""
+        if reason == QSystemTrayIcon.Trigger:
+            if self.isVisible():
+                self.hide()
+            else:
+                self.showNormal()
+                self.activateWindow()
+
+    def _on_tray_menu_about_to_show(self):
+        """托盘菜单即将显示时激活窗口，解决 Windows 上点击外部区域无法关闭菜单的问题"""
+        self.activateWindow()
+
+    def _onStartTask(self, command):
+        """处理任务启动信号"""
+        # 检查是否有任务正在运行
+        if self.logInterface.isTaskRunning():
+            InfoBar.warning(
+                title=self.tr('任务正在运行'),
+                content="请先停止当前任务后再启动新任务",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=5000,
+                parent=self
+            )
+            # 切换到日志界面
+            self.switchTo(self.logInterface)
+            return
+        # 切换到日志界面
+        self.switchTo(self.logInterface)
+        # 启动任务
+        self.logInterface.startTask(command)
+
+    def startFullTask(self):
+        """启动完整运行任务"""
+        from tasks.base.tasks import start_task
+        start_task("main")
+
+    def _onHotkeyChanged(self):
+        """处理热键配置改变信号"""
+        if hasattr(self, 'logInterface'):
+            self.logInterface.updateHotkey()
+
+    def _onTaskFinished(self, exit_code):
+        """处理任务完成信号"""
+        # 如果是启动任务且设置了完成后退出，则在任务成功完成时退出程序
+        if self.exit_on_complete and self.startup_task and exit_code == 0:
+            from PyQt5.QtCore import QTimer
+            # 延迟一小段时间让用户看到完成状态
+            QTimer.singleShot(5000, self.quitApp)
+        else:
+            # 任务失败或未指定退出时，清除自动退出标记
+            self.exit_on_complete = False
+
+    def quitApp(self):
+        """退出应用程序"""
+        self._stopRunningTask()
+        self._stopThemeListener()
+        # 清理日志界面的资源（如全局热键）
+        if hasattr(self, 'logInterface'):
+            self.logInterface.cleanup()
+        self.tray_icon.hide()
+        QApplication.quit()
+
+    def _on_config_file_changed(self):
+        """重新加载配置文件并刷新界面"""
+        try:
+            # 检查当前是否在设置界面
+            is_in_setting_interface = self.stackedWidget.currentWidget() == self.settingInterface
+
+            # 重新加载配置
+            cfg._load_config(None, save=False)
+
+            # 更新日志界面的热键
+            if hasattr(self, 'logInterface'):
+                self.logInterface.updateHotkey()
+
+            # 保存旧的设置界面引用
+            old_setting_interface = self.settingInterface
+            route_key = old_setting_interface.objectName()
+
+            # 创建新的设置界面
+            self.settingInterface = SettingInterface(self)
+
+            # 必须先把旧的导航栏隐藏，否则会导致最后的高度增加（bug）
+            self.navigationInterface.items[route_key].hide()
+
+            # 移除旧的设置界面
+            self.removeInterface(old_setting_interface, isDelete=True)
+
+            # 添加新的设置界面
+            self.addSubInterface(self.settingInterface, FIF.SETTING, self.tr('设置'), position=NavigationItemPosition.BOTTOM)
+
+            # 只有在重新加载配置前是在设置界面时，才切换到新的设置界面
+            if is_in_setting_interface:
+                self.switchTo(self.settingInterface)
+
+            # 只有在窗口可见时才显示提示
+            if self.isVisible():
+                InfoBar.success(
+                    title=self.tr('配置已更新'),
+                    content="检测到配置文件变化，已自动重新加载",
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=2000,
+                    parent=self
+                )
+        except Exception as e:
+            # 只有在窗口可见时才显示提示
+            if self.isVisible():
+                InfoBar.warning(
+                    title=self.tr('配置加载失败'),
+                    content=str(e),
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3000,
+                    parent=self
+                )
+
+    def _stopThemeListener(self):
+        """停止主题监听线程"""
+        if hasattr(self, 'themeListener') and self.themeListener:
+            self.themeListener.stop()
+            self.themeListener = None
+
+    def _stopRunningTask(self):
+        """停止正在运行的任务"""
+        if hasattr(self, 'logInterface') and self.logInterface.isTaskRunning():
+            self.logInterface.stopTask()
+            # 等待进程结束
+            if self.logInterface.process:
+                self.logInterface.process.waitForFinished(3000)
+                # 如果还没结束，强制结束
+                if self.logInterface.process.state() != 0:  # QProcess.NotRunning
+                    self.logInterface.process.kill()
+                    self.logInterface.process.waitForFinished(1000)
+
     def closeEvent(self, e):
-        if self.themeListener and self.themeListener.isRunning():
-            self.themeListener.terminate()
-            self.themeListener.deleteLater()
-        super().closeEvent(e)
+        """关闭窗口时根据配置执行对应操作"""
+        from .card.messagebox_custom import MessageBoxCloseWindow
+
+        close_action = cfg.get_value('close_window_action', 'ask')
+
+        if close_action == 'ask':
+            # 弹出询问对话框
+            dialog = MessageBoxCloseWindow(self)
+            dialog.exec()
+
+            if dialog.action == 'minimize':
+                # 最小化到托盘
+                e.ignore()
+                self.hide()
+                self.tray_icon.showMessage(
+                    'March7th Assistant',
+                    '程序已最小化到托盘',
+                    QSystemTrayIcon.Information,
+                    2000
+                )
+                # 若用户选择记住，则刷新设置界面以同步显示
+                try:
+                    if dialog.rememberCheckBox.isChecked():
+                        self._on_config_file_changed()
+                except Exception:
+                    pass
+            elif dialog.action == 'close':
+                # 关闭程序
+                self._stopRunningTask()
+                self._stopThemeListener()
+                self.tray_icon.hide()
+                e.accept()
+                QApplication.quit()
+            else:
+                # 用户取消操作（例如点击了 X 按钮）
+                e.ignore()
+        elif close_action == 'minimize':
+            # 直接最小化到托盘
+            e.ignore()
+            self.hide()
+            # self.tray_icon.showMessage(
+            #     'March7th Assistant',
+            #     '程序已最小化到托盘',
+            #     QSystemTrayIcon.Information,
+            #     2000
+            # )
+        elif close_action == 'close':
+            # 直接关闭程序
+            self._stopRunningTask()
+            self._stopThemeListener()
+            self.tray_icon.hide()
+            e.accept()
+            QApplication.quit()
+        else:
+            # 默认行为：最小化到托盘
+            e.ignore()
+            self.hide()
+            self.tray_icon.showMessage(
+                'March7th Assistant',
+                '程序已最小化到托盘',
+                QSystemTrayIcon.Information,
+                2000
+            )
 
     def startGame(self):
         start_game_button = self.navigationInterface.widget('startGameButton')

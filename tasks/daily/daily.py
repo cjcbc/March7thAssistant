@@ -15,6 +15,7 @@ from tasks.daily.tasks import Tasks
 from tasks.daily.himekotry import HimekoTry
 from tasks.weekly.echoofwar import Echoofwar
 from tasks.daily.buildtarget import BuildTarget
+from tasks.daily.redemption import Redemption
 from utils.color import red, green, yellow
 import datetime
 
@@ -22,6 +23,9 @@ import datetime
 class Daily:
     @staticmethod
     def start():
+        if cfg.reward_enable and cfg.reward_redemption_code_enable:
+            Redemption.get()
+
         # 获取培养目标（在活动前初始化，以便活动可以使用培养目标）
         if cfg.build_target_enable:
             BuildTarget.init_build_targets()
@@ -84,7 +88,7 @@ class Daily:
             if Date.is_next_mon_x_am(cfg.weekly_divergent_timestamp, cfg.refresh_hour):
                 screen.change_to("divergent_main")
                 if not Universe.check_universe_score():
-                    if Universe.start(1, False, "divergent"):
+                    if Universe.start(1, False, "divergent_weekly"):
                         cfg.save_timestamp("weekly_divergent_timestamp")
             else:
                 log.info("「差分宇宙」积分奖励尚未刷新")
@@ -164,8 +168,8 @@ class Daily:
                 "完成1次「侵蚀隧洞」": (lambda: False, 100),
                 "完成1次「历战余响」": (lambda: False, 100),
                 "将任意角色等级提升1次": (lambda: False, 100),
-                "将任意遗器等级提升1次": (lambda: False, 100),
-                "将任意光锥等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
+                "将任意遗器等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
+                "将任意光锥等级提升1次": (lambda: False, 100),
                 "分解任意1件遗器": (lambda: False, 100),
                 "完成1个日常任务": (lambda: False, 100),
                 "累计消灭20个敌人": (lambda: challenge.start_memory_one(2), 100),

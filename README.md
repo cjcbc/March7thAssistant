@@ -33,7 +33,7 @@
 ## 功能简介
 
 - **日常**：清体力、每日实训、领取奖励、委托、锄大地
-- **周常**：历战余响、模拟宇宙、忘却之庭
+- **周常**：历战余响、货币战争、模拟宇宙、忘却之庭
 - **抽卡记录导出**：支持 [UIGF](https://uigf.org/zh/standards/uigf.html)/[SRGF](https://uigf.org/zh/standards/srgf.html) 标准、**自动对话**
 - 每日实训等任务的完成情况支持**消息推送**
 - 任务刷新或体力恢复到指定值后**自动启动**
@@ -62,9 +62,57 @@
 
 检测更新可以点击图形界面设置最底下的按钮，或双击 `March7th Updater.exe`
 
+### 命令行参数
+
+图形界面 `March7th Launcher.exe` 支持命令行参数，可以在启动时自动执行指定任务：
+
+```bash
+# 查看帮助
+March7th Launcher.exe -h
+
+# 列出所有可用任务
+March7th Launcher.exe -l
+
+# 启动图形界面并执行完整运行
+March7th Launcher.exe main
+
+# 启动图形界面并执行每日实训
+March7th Launcher.exe daily
+
+# 任务正常完成后自动退出（需配合任务参数）
+March7th Launcher.exe main -e
+```
+
+<details>
+<summary>可用任务列表</summary>
+
+| 任务名称 | 说明 |
+|---------|------|
+| main | 完整运行 |
+| daily | 每日实训 |
+| power | 清体力 |
+| currencywars | 货币战争 |
+| currencywarsloop | 货币战争循环 |
+| fight | 锄大地 |
+| universe | 模拟宇宙 |
+| forgottenhall | 混沌回忆 |
+| purefiction | 虚构叙事 |
+| apocalyptic | 末日幻影 |
+| redemption | 兑换码 |
+| universe_gui | 模拟宇宙原生界面 |
+| fight_gui | 锄大地原生界面 |
+| universe_update | 模拟宇宙更新 |
+| fight_update | 锄大地更新 |
+| game | 启动游戏 |
+| notify | 测试消息推送 |
+
+</details>
+
 ## 源码运行
 
-如果你是完全不懂的小白，请通过上面的方式下载安装，不用往下看了。
+如果你是完全不懂的小白，请通过上面的方式下载安装，可以不用往下看了。
+
+推荐使用 Python 3.12 或更高版本。
 
 ```cmd
 # Installation (using venv is recommended)
@@ -83,8 +131,6 @@ git submodule update --init --recursive
 <summary>开发相关</summary>
 
 获取 crop 参数表示的裁剪坐标可以通过小助手工具箱内的捕获截图功能
-
-python main.py 后面支持参数 fight/universe/forgottenhall 等
 
 </details>
 
