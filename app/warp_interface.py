@@ -1,20 +1,18 @@
 # coding:utf-8
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QScroller, QScrollerProperties
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFileDialog, QScroller, QScrollerProperties
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import qconfig, ScrollArea, PrimaryPushButton, InfoBar, InfoBarPosition, PushButton, MessageBox
 from .common.style_sheet import StyleSheet
 from .tools.warp_export import warpExport, WarpExport, detect_format, uigf_to_srgf_hkrpg, srgf_to_uigf_hkrpg
 import pyperclip
 import json
-import markdown
 import os
-import pandas as pd
-import openpyxl
 from openpyxl.styles import Font
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 import time
+import sys
 
 
 class WarpInterface(ScrollArea):
@@ -22,7 +20,7 @@ class WarpInterface(ScrollArea):
         super().__init__(parent=parent)
         self.view = QWidget(self)
         self.vBoxLayout = QVBoxLayout(self.view)
-        self.titleLabel = QLabel(self.tr("抽卡记录"), self)
+        self.titleLabel = QLabel("抽卡记录", self)
 
         self.updateBtn = PrimaryPushButton(FIF.SYNC, "更新数据", self)
         self.updateFullBtn = PushButton(FIF.SYNC, "更新完整数据", self)
@@ -31,6 +29,11 @@ class WarpInterface(ScrollArea):
         self.exportExcelBtn = PushButton(FIF.SAVE_COPY, "导出Excel", self)
         self.copyLinkBtn = PushButton(FIF.SHARE, "复制链接", self)
         self.clearBtn = PushButton(FIF.DELETE, "清空", self)
+        if sys.platform != 'win32':
+            self.updateBtn.setEnabled(False)
+            self.updateFullBtn.setEnabled(False)
+            self.copyLinkBtn.setEnabled(False)
+
         self.warplink = None
 
         self.stateTooltip = None
@@ -62,7 +65,7 @@ class WarpInterface(ScrollArea):
         self.titleLabel.setObjectName('warpLabel')
         StyleSheet.WARP_INTERFACE.apply(self)
 
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setWidget(self.view)
         self.setWidgetResizable(True)
         self.contentLabel.setWordWrap(True)
@@ -74,7 +77,7 @@ class WarpInterface(ScrollArea):
 
         # self.vBoxLayout.setSpacing(28)
         self.vBoxLayout.setContentsMargins(36, 0, 36, 0)
-        self.vBoxLayout.addWidget(self.contentLabel, 0, Qt.AlignTop)
+        self.vBoxLayout.addWidget(self.contentLabel, 0, Qt.AlignmentFlag.AlignTop)
 
         QScroller.grabGesture(self.viewport(), QScroller.ScrollerGestureType.LeftMouseButtonGesture)
         scroller = QScroller.scroller(self.viewport())
@@ -128,9 +131,9 @@ class WarpInterface(ScrollArea):
             self.setContent()
 
             InfoBar.success(
-                title=self.tr('导入成功(＾∀＾●)'),
+                title='导入成功(＾∀＾●)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -138,9 +141,9 @@ class WarpInterface(ScrollArea):
             )
         except Exception:
             InfoBar.warning(
-                title=self.tr('导入失败(╥╯﹏╰╥)'),
+                title='导入失败(╥╯﹏╰╥)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -154,12 +157,20 @@ class WarpInterface(ScrollArea):
             warp = WarpExport(config)
             default_name = f"UIGF_{warp.get_uid()}"
 
-            path, _ = QFileDialog.getSaveFileName(
-                self,
-                "导出抽卡记录",
-                f"{default_name}",
-                "UIGF 格式 (*.json);;SRGF 格式 (*.srgf.json)"
-            )
+            if sys.platform == 'win32':
+                path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "导出抽卡记录",
+                    f"{default_name}",
+                    "UIGF 格式 (*.json);;SRGF 格式 (*.srgf.json)"
+                )
+            else:
+                path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "导出抽卡记录",
+                    f"{default_name}.json",
+                    "UIGF 格式 (*.json)"
+                )
             if not path:
                 return
 
@@ -174,12 +185,12 @@ class WarpInterface(ScrollArea):
             with open(path, 'w', encoding='utf-8') as file:
                 json.dump(data_to_save, file, ensure_ascii=False, indent=4)
 
-            os.startfile(os.path.dirname(path))
+            self._start_file(os.path.dirname(path))
 
             InfoBar.success(
-                title=self.tr('导出成功(＾∀＾●)'),
+                title='导出成功(＾∀＾●)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -188,9 +199,9 @@ class WarpInterface(ScrollArea):
 
         except Exception:
             InfoBar.warning(
-                title=self.tr('导出失败(╥╯﹏╰╥)'),
+                title='导出失败(╥╯﹏╰╥)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -201,6 +212,17 @@ class WarpInterface(ScrollArea):
         try:
             with open("./warp.json", 'r', encoding='utf-8') as file:
                 config = json.load(file)
+
+            path, _ = QFileDialog.getSaveFileName(
+                self,
+                "导出为 Excel 文件",
+                f"抽卡记录_{config['info'].get('uid', '未知')}.xlsx",
+                "Excel 文件 (*.xlsx)"
+            )
+            if not path:
+                return
+
+            import pandas as pd
             records = config.get("list", [])
             df = pd.DataFrame(records)
             df = df[["time", "name", "item_type", "rank_type", "gacha_type"]]
@@ -232,14 +254,6 @@ class WarpInterface(ScrollArea):
                 df.at[idx, "保底内"] = pity_counters[pool]
                 if star == "5":
                     pity_counters[pool] = 0
-            path, _ = QFileDialog.getSaveFileName(
-                self,
-                "导出为 Excel 文件",
-                f"抽卡记录_{config['info'].get('uid', '未知')}.xlsx",
-                "Excel 文件 (*.xlsx)"
-            )
-            if not path:
-                return
 
             df.to_excel(path, index=False)
             wb = load_workbook(path)
@@ -276,12 +290,12 @@ class WarpInterface(ScrollArea):
                 ws.column_dimensions[col_letter].width = max_width + 2
 
             wb.save(path)
-            os.startfile(os.path.dirname(path))
+            self._start_file(os.path.dirname(path))
 
             InfoBar.success(
-                title=self.tr('导出成功(＾∀＾●)'),
+                title='导出成功(＾∀＾●)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -290,9 +304,9 @@ class WarpInterface(ScrollArea):
 
         except Exception:
             InfoBar.warning(
-                title=self.tr('导出失败(╥╯﹏╰╥)'),
+                title='导出失败(╥╯﹏╰╥)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -303,9 +317,9 @@ class WarpInterface(ScrollArea):
         try:
             pyperclip.copy(self.warplink)
             InfoBar.success(
-                title=self.tr('复制成功(＾∀＾●)'),
+                title='复制成功(＾∀＾●)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -313,9 +327,9 @@ class WarpInterface(ScrollArea):
             )
         except Exception:
             InfoBar.warning(
-                title=self.tr('复制失败(╥╯﹏╰╥)'),
+                title='复制失败(╥╯﹏╰╥)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -324,8 +338,8 @@ class WarpInterface(ScrollArea):
 
     def __onClearBtnClicked(self):
         message_box = MessageBox(
-            self.tr("清空抽卡记录"),
-            self.tr("确定要清空抽卡记录吗？此操作不可撤销。"),
+            "清空抽卡记录",
+            "确定要清空抽卡记录吗？此操作不可撤销。",
             self.window()
         )
         message_box.yesButton.setText('确认')
@@ -335,9 +349,9 @@ class WarpInterface(ScrollArea):
                 os.remove("./warp.json")
                 self.setContent()
                 InfoBar.success(
-                    title=self.tr('清空完成(＾∀＾●)'),
+                    title='清空完成(＾∀＾●)',
                     content="",
-                    orient=Qt.Horizontal,
+                    orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP,
                     duration=1000,
@@ -346,14 +360,22 @@ class WarpInterface(ScrollArea):
             except Exception as e:
                 print(e)
                 InfoBar.warning(
-                    title=self.tr('清空失败(╥╯﹏╰╥)'),
+                    title='清空失败(╥╯﹏╰╥)',
                     content="",
-                    orient=Qt.Horizontal,
+                    orient=Qt.Orientation.Horizontal,
                     isClosable=True,
                     position=InfoBarPosition.TOP,
                     duration=1000,
                     parent=self
                 )
+
+    def _start_file(self, path):
+        if sys.platform == 'win32':
+            os.startfile(path)
+        elif sys.platform == 'darwin':
+            os.system(f'open "{path}"')
+        else:
+            os.system(f'xdg-open "{path}"')
 
     def setContent(self):
         try:

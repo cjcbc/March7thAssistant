@@ -168,8 +168,8 @@ class Daily:
                 "完成1次「侵蚀隧洞」": (lambda: False, 100),
                 "完成1次「历战余响」": (lambda: False, 100),
                 "将任意角色等级提升1次": (lambda: False, 100),
-                "将任意遗器等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
-                "将任意光锥等级提升1次": (lambda: False, 100),
+                "将任意遗器等级提升1次": (lambda: False, 100),
+                "将任意光锥等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
                 "分解任意1件遗器": (lambda: False, 100),
                 "完成1个日常任务": (lambda: False, 100),
                 "累计消灭20个敌人": (lambda: challenge.start_memory_one(2), 100),
@@ -231,4 +231,7 @@ class Daily:
                         log.info(f"任务无法完成: {task_name}")
             # 清空日常任务，避免由于提前结束，而cfg中残留未完成任务导致出现异常
             cfg.set_value("daily_tasks", empty_tasks)
+        else:
+            reward.start_specific("quest")
+            cfg.save_timestamp("last_run_timestamp")
         log.hr("完成", 2)

@@ -200,6 +200,11 @@ class Universe:
     @staticmethod
     def start(nums=cfg.universe_count, save=True, category=cfg.universe_category):
         log.hr("准备模拟宇宙", 0)
+
+        if sys.platform != 'win32':
+            log.warning("模拟宇宙功能仅支持 Windows 平台")
+            return False
+
         if cfg.cloud_game_enable and cfg.browser_headless_enable:
             log.error("模拟宇宙不支持无界面模式运行")
             return False
@@ -271,7 +276,24 @@ class Universe:
         immersifier_count = int(text.split("/")[0])
         log.info(f"沉浸器: {immersifier_count}/12")
         if immersifier_count > 0:
-            Instance.run("饰品提取", cfg.instance_names["饰品提取"], 40, immersifier_count)
+            instance_name = cfg.instance_names["饰品提取"]
+
+            # 使用培养目标的副本配置（如果启用）
+            try:
+                if cfg.build_target_enable:
+                    from tasks.daily.buildtarget import BuildTarget
+                    target_instances = BuildTarget.get_target_instances()
+
+                    for target_type, target_name in target_instances:
+                        # 精确匹配副本类型
+                        if target_type == "饰品提取":
+                            log.info(f"使用培养目标副本: {target_name}")
+                            instance_name = target_name
+                            break
+            except Exception as e:
+                log.error(f"获取培养目标副本失败: {e}")
+
+            Instance.run("饰品提取", instance_name, 40, immersifier_count)
 
     @staticmethod
     def gui():

@@ -1,8 +1,8 @@
 # coding:utf-8
-from PyQt5.QtCore import Qt, QProcess, QProcessEnvironment, pyqtSignal, QTimer, QTime, QDateTime
-from PyQt5.QtGui import QFont, QTextCursor, QKeySequence
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit,
-                             QShortcut, QSizePolicy)
+from PySide6.QtCore import Qt, QProcess, QProcessEnvironment, Signal, QTimer, QTime, QDateTime, QEvent
+from PySide6.QtGui import QFont, QTextCursor
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
+                               QSizePolicy)
 from qfluentwidgets import (ScrollArea, PrimaryPushButton, PushButton,
                             FluentIcon, InfoBar, InfoBarPosition, CardWidget,
                             BodyLabel, StrongBodyLabel, PlainTextEdit,
@@ -28,11 +28,11 @@ class LogInterface(ScrollArea):
     """日志界面"""
 
     # 信号：任务完成
-    taskFinished = pyqtSignal(int)  # exit_code
+    taskFinished = Signal(int)  # exit_code
     # 信号：请求停止任务（用于从全局热键线程安全调用）
-    stopTaskRequested = pyqtSignal()
+    stopTaskRequested = Signal()
     # 线程安全的日志信号（用于从后台线程发送日志）
-    logMessage = pyqtSignal(str)
+    logMessage = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -51,6 +51,15 @@ class LogInterface(ScrollArea):
         self._pending_post_action_timer = None
         # 标记任务是否因异常被停止（非正常结束，如超时、进程错误或异常退出）
         self._stopped_abnormally = False
+        # 标记是否在主动停止过程中抑制 QProcess.errorOccurred 的处理
+        self._suppress_process_error = False
+        # 标记本次停止是否由用户主动触发（用于统一跨平台表现）
+        self._user_initiated_stop = False
+
+        # 缓冲在窗口不可见时收到的日志（在窗口恢复可见时一次性追加）
+        self._buffered_logs = ""
+        # 延迟安装窗口事件过滤器（确保 window() 已可用）
+        QTimer.singleShot(0, self._install_window_event_filter)
 
         # 定时运行相关
         self._schedule_timer = QTimer(self)
@@ -65,7 +74,7 @@ class LogInterface(ScrollArea):
         self.__initShortcut()
 
         # 连接停止任务信号
-        self.stopTaskRequested.connect(self.stopTask)
+        self.stopTaskRequested.connect(lambda: self.stopTask(user_initiated=True))
         # 线程安全日志信号连接（用于从后台线程发送日志）
         self.logMessage.connect(self.appendLog)
 
@@ -79,7 +88,7 @@ class LogInterface(ScrollArea):
         self.setObjectName('logInterface')
         StyleSheet.LOG_INTERFACE.apply(self)
 
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.setWidget(self.scrollWidget)
         self.setWidgetResizable(True)
 
@@ -88,10 +97,13 @@ class LogInterface(ScrollArea):
         self.headerLayout = QHBoxLayout(self.headerWidget)
         self.headerLayout.setContentsMargins(0, 0, 0, 0)
 
-        self.titleLabel = StrongBodyLabel(self.tr('任务日志'))
-        self.titleLabel.setFont(QFont('Microsoft YaHei', 16, QFont.Bold))
+        self.titleLabel = StrongBodyLabel('任务日志')
+        if sys.platform == 'win32':
+            self.titleLabel.setFont(QFont('Microsoft YaHei', 16, QFont.Bold))
+        else:
+            self.titleLabel.setFont(QFont('PingFang SC', 16, QFont.Bold))
 
-        self.statusLabel = BodyLabel(self.tr('等待任务...'))
+        self.statusLabel = BodyLabel('等待任务...')
         # self.statusLabel.setStyleSheet("color: gray;")
 
         self.headerLayout.addWidget(self.titleLabel)
@@ -104,12 +116,15 @@ class LogInterface(ScrollArea):
         self.buttonLayout.setContentsMargins(0, 0, 0, 0)
         self.buttonLayout.setSpacing(10)
 
-        hotkey = cfg.get_value("hotkey_stop_task", "f10").upper()
-        self.stopButton = PrimaryPushButton(FluentIcon.CLOSE, self.tr(f'停止任务 ({hotkey})'))
-        self.stopButton.clicked.connect(self.stopTask)
+        if sys.platform == 'win32':
+            hotkey = cfg.get_value("hotkey_stop_task", "f10").upper()
+            self.stopButton = PrimaryPushButton(FluentIcon.CLOSE, self.tr(f'停止任务 ({hotkey})'))
+        else:
+            self.stopButton = PrimaryPushButton(FluentIcon.CLOSE, self.tr('停止任务'))
+        self.stopButton.clicked.connect(lambda: self.stopTask(user_initiated=True))
         self.stopButton.setEnabled(False)
 
-        self.clearButton = PushButton(FluentIcon.DELETE, self.tr('清空日志'))
+        self.clearButton = PushButton(FluentIcon.DELETE, '清空日志')
         self.clearButton.clicked.connect(self.clearLog)
 
         self.buttonLayout.addWidget(self.stopButton)
@@ -117,10 +132,10 @@ class LogInterface(ScrollArea):
         self.buttonLayout.addSpacing(20)
 
         # 定时任务配置（支持多个定时任务）
-        self.scheduleLabel = BodyLabel(self.tr('定时任务'))
+        self.scheduleLabel = BodyLabel('定时任务')
 
         # 打开定时任务管理配置弹窗
-        self.manageScheduleButton = PushButton(self.tr('配置定时任务'))
+        self.manageScheduleButton = PushButton('配置定时任务')
         self.manageScheduleButton.clicked.connect(self._openScheduleManager)
 
         self.scheduleStatusLabel = BodyLabel()
@@ -138,7 +153,15 @@ class LogInterface(ScrollArea):
 
         self.logTextEdit = PlainTextEdit()
         self.logTextEdit.setReadOnly(True)
-        self.logTextEdit.setFont(QFont('NSimSun', 10))
+
+        # 根据操作系统选择合适的等宽字体
+        if sys.platform == 'win32':
+            log_font = QFont('NSimSun', 10)
+        elif sys.platform == 'darwin':
+            log_font = QFont('Menlo', 10)
+        else:
+            log_font = QFont('DejaVu Sans Mono', 10)
+        self.logTextEdit.setFont(log_font)
         # self.logTextEdit.setStyleSheet("""
         #     QPlainTextEdit {
         #         background-color: #1e1e1e;
@@ -161,7 +184,7 @@ class LogInterface(ScrollArea):
         self.vBoxLayout.addWidget(self.headerWidget)
         self.vBoxLayout.addWidget(self.buttonWidget)
         self.vBoxLayout.addWidget(self.logCard, 1)
-        self.vBoxLayout.setAlignment(Qt.AlignTop)
+        self.vBoxLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
     def __initShortcut(self):
         """初始化快捷键（全局热键，支持后台）"""
@@ -169,27 +192,30 @@ class LogInterface(ScrollArea):
 
     def _registerGlobalHotkey(self):
         """注册全局热键"""
-        # 先取消之前的热键
-        self._unregisterGlobalHotkey()
+        if sys.platform == 'win32':
+            # 先取消之前的热键
+            self._unregisterGlobalHotkey()
 
-        try:
-            hotkey = cfg.get_value("hotkey_stop_task", "f10")
-            keyboard.add_hotkey(hotkey, self._onGlobalHotkeyPressed)
-            self._hotkey_registered = True
-            self._current_hotkey = hotkey
-        except Exception as e:
-            print(f"注册全局热键失败: {e}")
-            self._hotkey_registered = False
+            try:
+                hotkey = cfg.get_value("hotkey_stop_task", "f10")
+                keyboard.add_hotkey(hotkey, self._onGlobalHotkeyPressed)
+                self._hotkey_registered = True
+                self._current_hotkey = hotkey
+            except Exception as e:
+                print(f"注册全局热键失败: {e}")
+                self._hotkey_registered = False
 
     def _unregisterGlobalHotkey(self):
         """取消注册全局热键"""
-        if self._hotkey_registered and self._current_hotkey:
-            try:
-                keyboard.remove_hotkey(self._current_hotkey)
-            except:
-                pass
-            self._hotkey_registered = False
-            self._current_hotkey = None
+        if sys.platform == 'win32':
+            if self._hotkey_registered and self._current_hotkey:
+                try:
+                    keyboard.remove_hotkey(self._current_hotkey)
+                except Exception as e:
+                    # 忽略注销热键时的异常，但打印日志以便排查问题
+                    print(f"取消注册全局热键失败: {e}")
+                self._hotkey_registered = False
+                self._current_hotkey = None
 
     def _onGlobalHotkeyPressed(self):
         """全局热键被按下"""
@@ -199,9 +225,12 @@ class LogInterface(ScrollArea):
     def updateHotkey(self):
         """更新热键（当配置改变时调用）"""
         self._registerGlobalHotkey()
-        # 更新按钮文本
-        hotkey = cfg.get_value("hotkey_stop_task", "f10").upper()
-        self.stopButton.setText(self.tr(f'停止任务 ({hotkey})'))
+        if sys.platform == 'win32':
+            # 更新按钮文本
+            hotkey = cfg.get_value("hotkey_stop_task", "f10").upper()
+            self.stopButton.setText(self.tr(f'停止任务 ({hotkey})'))
+        else:
+            self.stopButton.setText(self.tr('停止任务'))
 
     def _updateScheduleStatusLabel(self):
         """更新定时状态标签：展示启用的定时任务数量和下次运行时间（若有）"""
@@ -213,7 +242,7 @@ class LogInterface(ScrollArea):
         #         time_str = cfg.get_value('scheduled_run_time', '04:00')
         #         self.scheduleStatusLabel.setText(self.tr(f'旧单一定时启用: {time_str}'))
         #     else:
-        #         self.scheduleStatusLabel.setText(self.tr('未配置定时任务'))
+        #         self.scheduleStatusLabel.setText('未配置定时任务')
         #     return
 
         # 找到接下来最近要运行的任务时间
@@ -244,13 +273,13 @@ class LogInterface(ScrollArea):
             self.scheduleStatusLabel.setText(self.tr(f'已启用定时任务数: {len(enabled)}，下次: {time_str} ({next_task.get("name", "")})'))
         else:
             # self.scheduleStatusLabel.setText(self.tr(f'已启用定时任务数: {len(enabled)}'))
-            self.scheduleStatusLabel.setText(self.tr('尚未配置定时任务'))
+            self.scheduleStatusLabel.setText('尚未配置定时任务')
 
     def _openScheduleManager(self):
         """打开定时任务管理对话框"""
         tasks = cfg.get_value('scheduled_tasks', []) or []
         dlg = ScheduleManagerDialog(self, scheduled_tasks=tasks, save_callback=self._saveScheduledTasks)
-        dlg.exec_()
+        dlg.exec()
         # 重新刷新状态标签
         self._updateScheduleStatusLabel()
 
@@ -272,7 +301,7 @@ class LogInterface(ScrollArea):
                 # 生成新的任务项（完整运行）
                 task = {
                     'id': str(uuid.uuid4()),
-                    'name': self.tr('完整运行'),
+                    'name': '完整运行',
                     'time': scheduled_time,
                     'program': 'self',
                     'args': 'main',
@@ -384,7 +413,7 @@ class LogInterface(ScrollArea):
                         # 排队延迟启动：保存元数据与任务字典，调用 stopTask 停止当前任务
                         try:
                             self._pending_start_task_after_stop = (t, task_for_start)
-                            self.stopTask()
+                            self.stopTask(user_initiated=False)
                         except Exception as e:
                             self.appendLog(f"停止当前任务失败: {e}\n")
                         # 返回以避免在同一轮触发其它任务
@@ -404,7 +433,7 @@ class LogInterface(ScrollArea):
         """启动任务"""
         # 如果有正在运行的任务，先停止
         if self.process and self.process.state() == QProcess.Running:
-            self.stopTask()
+            self.stopTask(user_initiated=False)
             # 等待进程结束
             self.process.waitForFinished(3000)
 
@@ -419,7 +448,7 @@ class LogInterface(ScrollArea):
                 return
             name = task.get('name') or os.path.basename(program) or program
 
-            self.logTextEdit.clear()
+            self.clearLog()
             self.appendLog(f"========== 开始任务: {name} ==========\n")
 
             proc = QProcess(self)
@@ -502,7 +531,7 @@ class LogInterface(ScrollArea):
         self.current_task = task
         command = str(task)
         task_display_name = TASK_NAMES.get(command, command)
-        self.logTextEdit.clear()
+        self.clearLog()
         self.appendLog(f"========== 开始任务: {task_display_name} ==========\n")
 
         # 更新状态
@@ -521,7 +550,7 @@ class LogInterface(ScrollArea):
         # 设置环境变量，继承系统环境变量并确保 Python 输出不缓冲
         env = QProcessEnvironment.systemEnvironment()
         env.insert("PYTHONUNBUFFERED", "1")
-        env.insert("MARCH7TH_GUI_STARTED", "1")  # 标记为图形界面启动
+        env.insert("MARCH7TH_GUI_STARTED", "true")  # 标记为图形界面启动
         # 避免将当前进程的 Qt 环境变量传给子进程（会造成 "no qt platform plugin could be initialized" 错误）
         try:
             _remove_keys = ['QML2_IMPORT_PATH', 'QT_PLUGIN_PATH']
@@ -537,6 +566,8 @@ class LogInterface(ScrollArea):
             executable_path = os.path.abspath("./March7th Assistant.exe")
             if not os.path.exists(executable_path):
                 self.appendLog("错误: 未找到可执行文件 March7th Assistant.exe\n")
+                self.appendLog("请将`小助手文件夹`加入杀毒软件排除项/白名单/信任区，然后重新解压覆盖一次\n")
+                self.appendLog("具体操作方法可以参考“常见问题”（FAQ）\n")
                 self._updateFinishedStatus(-1)
                 return
             # 将工作目录设置为可执行文件所在目录
@@ -587,7 +618,7 @@ class LogInterface(ScrollArea):
 
         # self.appendLog("-" * 117 + "\n")
 
-    def stopTask(self):
+    def stopTask(self, user_initiated=True):
         """停止任务"""
         # 取消任何挂起的超时定时器
         if getattr(self, '_timeout_timer', None):
@@ -619,18 +650,28 @@ class LogInterface(ScrollArea):
                     pass
                 return
 
-        # 用户主动停止视为异常停止（用于通知/后续处理判定）
+        # 记录本次停止是否由用户主动触发；用户停止不视为异常
         try:
-            self._stopped_abnormally = True
+            self._user_initiated_stop = bool(user_initiated)
+            if user_initiated:
+                self._stopped_abnormally = False
         except Exception:
             pass
 
         if self.process and self.process.state() == QProcess.Running:
             self.appendLog("\n" + "=" * 117 + "\n")
-            self.appendLog("用户请求停止任务...\n")
+            if user_initiated:
+                self.appendLog("用户请求停止任务...\n")
+            else:
+                self.appendLog("停止当前任务...\n")
 
             # 在 Windows 上使用 taskkill 来终止进程树
             pid = self.process.processId()
+            # 主动停止期间抑制 errorOccurred 处理
+            try:
+                self._suppress_process_error = True
+            except Exception:
+                pass
             if pid > 0:
                 self._killProcessTree(pid)
             else:
@@ -640,20 +681,82 @@ class LogInterface(ScrollArea):
 
     def _killProcessTree(self, pid):
         """杀死进程树（包括所有子进程）"""
-        import subprocess as sp
         try:
-            # 使用 taskkill /T /F 强制终止进程树
-            sp.run(
-                ['taskkill', '/T', '/F', '/PID', str(pid)],
-                capture_output=True,
-                creationflags=sp.CREATE_NO_WINDOW
-            )
+            if sys.platform == 'win32':
+                import subprocess as sp
+                # 使用 taskkill /T /F 强制终止进程树（仅针对目标 PID，不影响 GUI 自身）
+                sp.run(
+                    ['taskkill', '/T', '/F', '/PID', str(pid)],
+                    capture_output=True,
+                    creationflags=sp.CREATE_NO_WINDOW
+                )
+            else:
+                # macOS / Linux: 递归获取并终止子进程，避免使用进程组以免误杀 GUI
+                import subprocess as sp
+                import os
+                import signal
+                import time
+
+                def _descendants(root_pid: int):
+                    """递归获取所有子进程 PID 列表（不包含 root_pid 自身）"""
+                    seen = set()
+                    stack = [root_pid]
+                    result = []
+                    while stack:
+                        p = stack.pop()
+                        try:
+                            out = sp.run(['pgrep', '-P', str(p)], capture_output=True, text=True)
+                        except Exception:
+                            out = None
+                        if out and out.stdout:
+                            for line in out.stdout.strip().splitlines():
+                                try:
+                                    child = int(line.strip())
+                                except ValueError:
+                                    continue
+                                if child not in seen:
+                                    seen.add(child)
+                                    result.append(child)
+                                    stack.append(child)
+                    return result
+
+                children = _descendants(pid)
+
+                # 先向所有子进程发送 SIGTERM
+                for c in children:
+                    try:
+                        os.kill(c, signal.SIGTERM)
+                    except Exception:
+                        pass
+
+                # 再向父进程发送 SIGTERM
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+
+                # 等待片刻，若仍未退出则强制 SIGKILL
+                time.sleep(0.5)
+
+                for c in children:
+                    try:
+                        os.kill(c, signal.SIGKILL)
+                    except Exception:
+                        pass
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except Exception:
+                    pass
+
             self.appendLog(f"已终止进程树 (PID: {pid})\n")
         except Exception as e:
             self.appendLog(f"终止进程树失败: {e}\n")
-            # 回退到普通终止
+            # 回退到普通终止，仅终止当前子进程，不影响 GUI
             if self.process:
-                self.process.kill()
+                try:
+                    self.process.kill()
+                except Exception:
+                    pass
 
     def _forceKillProcess(self):
         """强制结束进程"""
@@ -681,33 +784,126 @@ class LogInterface(ScrollArea):
                 pass
         except Exception:
             pass
-        # 使用 stopTask 统一停止（stopTask 会清理定时器）
-        self.stopTask()
+        # 使用 stopTask 统一停止（非用户触发，stopTask 会清理定时器）
+        self.stopTask(user_initiated=False)
 
     def clearLog(self):
-        """清空日志"""
-        self.logTextEdit.clear()
+        """清空日志并清空缓冲"""
+        try:
+            self.logTextEdit.clear()
+        except Exception:
+            pass
+        try:
+            self._buffered_logs = ""
+        except Exception:
+            pass
 
     def appendLog(self, text):
-        """追加日志"""
-        self.logTextEdit.moveCursor(QTextCursor.End)
-        self.logTextEdit.insertPlainText(text)
-        self.logTextEdit.moveCursor(QTextCursor.End)
-        # 自动滚动到底部
-        scrollbar = self.logTextEdit.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        """追加日志
+
+        变更：当日志界面或主窗口不可见时，缓冲日志；在恢复可见时一次性追加并滚动到底部。
+        """
+        if not text:
+            return
+        s = str(text)
+
+        # 如果当前不应立即追加，则缓冲并返回
+        try:
+            if not self._should_append_now():
+                try:
+                    self._buffered_logs += s
+                except Exception:
+                    self._buffered_logs = s
+                return
+        except Exception:
+            # 若检查可见性失败，则继续追加以保证日志不丢失
+            pass
+
+        # 如果有缓冲内容，先追加它
+        try:
+            if getattr(self, '_buffered_logs', None):
+                s = self._buffered_logs + s
+                self._buffered_logs = ''
+        except Exception:
+            pass
+
+        # 执行追加并滚动到底部
+        try:
+            self.logTextEdit.moveCursor(QTextCursor.End)
+            self.logTextEdit.insertPlainText(s)
+            self.logTextEdit.moveCursor(QTextCursor.End)
+            scrollbar = self.logTextEdit.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+        except Exception:
+            # 如果追加失败，尽量保留内容到缓冲中
+            try:
+                self._buffered_logs = (getattr(self, '_buffered_logs', '') or '') + s
+            except Exception:
+                pass
+
+    def _should_append_now(self):
+        """判断当前是否应该立即追加日志：要求当前控件和顶层窗口都可见"""
+        try:
+            if not self.isVisible():
+                return False
+            w = self.window()
+            if w and not w.isVisible():
+                return False
+            return True
+        except Exception:
+            # 在不确定时返回 True 以避免丢失日志
+            return True
+
+    def _flush_buffered_logs(self):
+        """把缓冲的日志一次性追加到日志编辑器并清空缓冲"""
+        try:
+            if not getattr(self, '_buffered_logs', None):
+                return
+            self.logTextEdit.moveCursor(QTextCursor.End)
+            self.logTextEdit.insertPlainText(self._buffered_logs)
+            self.logTextEdit.moveCursor(QTextCursor.End)
+            scrollbar = self.logTextEdit.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
+            self._buffered_logs = ''
+        except Exception:
+            # 忽略任何刷新错误并清理缓冲
+            self._buffered_logs = ''
+
+    def showEvent(self, event):
+        """控件被显示时刷新缓冲日志"""
+        try:
+            super().showEvent(event)
+        except Exception:
+            pass
+        self._flush_buffered_logs()
+
+    def eventFilter(self, obj, event):
+        """监听父窗口的可见性/状态变化，在窗口恢复可见时刷新缓冲日志"""
+        try:
+            w = self.window()
+            if obj is w:
+                et = event.type()
+                if et in (QEvent.Show, QEvent.WindowStateChange, QEvent.ActivationChange):
+                    if self._should_append_now():
+                        self._flush_buffered_logs()
+        except Exception:
+            pass
+        return super().eventFilter(obj, event)
+
+    def _install_window_event_filter(self):
+        """延迟安装顶层窗口事件过滤器以监听窗口显示/隐藏等事件"""
+        try:
+            w = self.window()
+            if w:
+                w.installEventFilter(self)
+        except Exception:
+            pass
 
     def _onReadyRead(self):
         """读取进程输出"""
         if self.process:
-            # 读取标准输出
+            # 读取标准输出（由于设置了 MergedChannels，标准错误也会合并到这里）
             data = self.process.readAllStandardOutput()
-            if data:
-                text = self._decodeOutput(bytes(data))
-                self.appendLog(text)
-
-            # 读取错误输出
-            data = self.process.readAllStandardError()
             if data:
                 text = self._decodeOutput(bytes(data))
                 self.appendLog(text)
@@ -758,15 +954,29 @@ class LogInterface(ScrollArea):
             self._timeout_timer = None
 
         self.appendLog("\n" + "=" * 117 + "\n")
+        user_stop = False
+        try:
+            user_stop = bool(getattr(self, '_user_initiated_stop', False))
+            self._user_initiated_stop = False
+        except Exception:
+            user_stop = False
         if exit_status == QProcess.NormalExit:
             self.appendLog(f"任务完成，退出码: {exit_code}\n")
         else:
-            # 非正常退出，标记为异常停止以便后续处理
-            try:
-                self._stopped_abnormally = True
-            except Exception:
-                pass
-            self.appendLog(f"任务异常结束，退出码: {exit_code}\n")
+            if user_stop:
+                # 用户主动停止统一展示为“任务已停止”，不视为异常
+                try:
+                    self._stopped_abnormally = False
+                except Exception:
+                    pass
+                self.appendLog("任务已停止（用户停止）\n")
+            else:
+                # 非正常退出，标记为异常停止以便后续处理
+                try:
+                    self._stopped_abnormally = True
+                except Exception:
+                    pass
+                self.appendLog(f"任务异常结束，退出码: {exit_code}\n")
 
         self._updateFinishedStatus(exit_code)
         self.taskFinished.emit(exit_code)
@@ -798,11 +1008,13 @@ class LogInterface(ScrollArea):
                 try:
                     if bool(pm.get('notify', False)):
                         try:
-                            # 若因异常停止或退出状态非正常，则视为异常结束
-                            if getattr(self, '_stopped_abnormally', False) or exit_status != QProcess.NormalExit:
-                                note = f"定时任务异常结束: {pm.get('name', '')}"
-                            else:
-                                note = f"定时任务完成: {pm.get('name', '')}"
+                            # 用户停止不视为异常；否则根据退出状态与异常标记判定
+                            abnormal = False
+                            try:
+                                abnormal = (not user_stop) and (getattr(self, '_stopped_abnormally', False) or exit_status != QProcess.NormalExit)
+                            except Exception:
+                                abnormal = (not user_stop) and (exit_status != QProcess.NormalExit)
+                            note = (f"定时任务异常结束: {pm.get('name', '')}" if abnormal else f"定时任务完成: {pm.get('name', '')}")
 
                             def _send_notify(n):
                                 try:
@@ -901,6 +1113,13 @@ class LogInterface(ScrollArea):
         except Exception:
             pass
 
+        # 进程已结束，解除错误抑制与用户停止标记
+        try:
+            self._suppress_process_error = False
+            # self._user_initiated_stop = False
+        except Exception:
+            pass
+
         # 如果有排队的延迟启动任务（由于冲突设置导致在停止当前任务后再启动），在进程结束处理完成后启动它
         try:
             pending = getattr(self, '_pending_start_task_after_stop', None)
@@ -923,6 +1142,12 @@ class LogInterface(ScrollArea):
 
     def _onProcessError(self, error):
         """进程错误"""
+        # 如果当前处于主动停止/强制结束过程，忽略错误事件
+        try:
+            if getattr(self, '_suppress_process_error', False):
+                return
+        except Exception:
+            pass
         error_messages = {
             QProcess.FailedToStart: "进程启动失败",
             QProcess.Crashed: "进程崩溃",
@@ -943,13 +1168,13 @@ class LogInterface(ScrollArea):
     def _post_action_label(self, action: str) -> str:
         """返回 post_action 的本地化标签"""
         mapping = {
-            'None': self.tr('无操作'),
-            'Shutdown': self.tr('关机'),
-            'Sleep': self.tr('睡眠'),
-            'Hibernate': self.tr('休眠'),
-            'Restart': self.tr('重启'),
-            'Logoff': self.tr('注销'),
-            'TurnOffDisplay': self.tr('关闭显示器'),
+            'None': '无操作',
+            'Shutdown': '关机',
+            'Sleep': '睡眠',
+            'Hibernate': '休眠',
+            'Restart': '重启',
+            'Logoff': '注销',
+            'TurnOffDisplay': '关闭显示器',
         }
         return mapping.get(action, str(action))
 
@@ -1011,10 +1236,10 @@ class LogInterface(ScrollArea):
                 pass
 
         if exit_code == 0:
-            self.statusLabel.setText(self.tr('任务完成'))
+            self.statusLabel.setText('任务完成')
             # self.statusLabel.setStyleSheet("color: green;")
         else:
-            self.statusLabel.setText(self.tr('任务已停止'))
+            self.statusLabel.setText('任务已停止')
             # self.statusLabel.setStyleSheet("color: orange;")
 
     def isTaskRunning(self):

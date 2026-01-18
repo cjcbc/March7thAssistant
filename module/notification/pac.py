@@ -1,6 +1,6 @@
-
-import pypac
-import winreg
+import sys
+if sys.platform == 'win32':
+    import winreg
 
 PAC_REG_KEY = "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"
 
@@ -29,6 +29,7 @@ def macth_pac_settings(url: str, pac_url: str):
     :param pac_url: pac url
     :return: proxy or None
     """
+    import pypac
     pac = pypac.get_pac(url=pac_url)
     if pac is None:
         pac_result = None

@@ -49,7 +49,7 @@ class Automation(metaclass=SingletonMeta):
         :param crop: 截图的裁剪区域，格式为(x1, y1, x2, y2)，默认为全屏。
         :return: 成功时返回截图及其位置和缩放因子，失败时抛出异常。
         """
-        start_time = time.time()
+        start_time = time.monotonic()
         while True:
             try:
                 result = Screenshot.take_screenshot(self.window_title, crop=crop)
@@ -61,7 +61,7 @@ class Automation(metaclass=SingletonMeta):
             except Exception as e:
                 self.logger.error(f"截图失败：{e}")
             time.sleep(1)
-            if time.time() - start_time > 60:
+            if time.monotonic() - start_time > 60:
                 raise RuntimeError("截图超时")
 
     def calculate_positions(self, template, max_loc, relative):
@@ -290,6 +290,14 @@ class Automation(metaclass=SingletonMeta):
             return dx < 0 and dy > 0
         elif position == 'top_right':
             return dx > 0 and dy < 0
+        elif position == 'right':
+            return dx > 0 and abs(dy) < 10  # 允许一定的垂直偏差
+        elif position == 'left':
+            return dx < 0 and abs(dy) < 10  # 允许一定的垂直偏差
+        elif position == 'top':
+            return dy < 0 and abs(dx) < 10  # 允许一定的水平偏差
+        elif position == 'bottom':
+            return dy > 0 and abs(dx) < 10  # 允许一定的水平偏差
         return False
 
     def find_target_near_source(self, target, include, source_pos, position):
@@ -481,7 +489,6 @@ class Automation(metaclass=SingletonMeta):
             self.take_screenshot(crop)
             ocr_result = ocr.recognize_single_line(np.array(self.screenshot), blacklist)
             if ocr_result:
-                self.logger.debug(f"OCR识别结果：{ocr_result[0]}")
                 return ocr_result[0]
             if retry_delay > 0 and i < max_retries - 1:
                 time.sleep(retry_delay)

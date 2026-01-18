@@ -1,6 +1,36 @@
 # 更新日志
 
-## v2025.12.24-beta
+## v2026.1.21
+- 支持货币战争领取积分奖励后自动使用深度沉浸器
+- 新增 MeoW 推送支持 [#850](https://github.com/moesnow/March7thAssistant/pull/850) @pboymt
+- 优化性能和稳定性并修复若干已知问题
+- 注意：因为 v2026.1.18 更新存在 bug，需要 [手动下载](https://github.com/moesnow/March7thAssistant/releases/tag/v2026.1.21) 覆盖更新到新版本！！！
+- [若已有 Mirror酱 CDK 可点此处高速下载](https://mirrorchyan.com/zh/download?rid=March7thAssistant&os=&arch=&channel=stable&source=m7a-release)
+
+## v2026.1.19
+- 对图形界面进行了全面升级优化
+- 新增启动游戏前自动检测并开启战斗二倍速功能
+- 源码运行适配 macOS/Linux 并支持 [Docker 部署](https://m7a.top/#/assets/docs/Docker)
+- 托盘右键菜单新增设置选项
+- 云游戏无窗口模式支持二维码登录
+- 云游戏排队增加预计等待时间提示
+- 升级 OCR 推理引擎和模型
+- 优化 “未找到可执行文件” 时的报错信息 [解决方法](https://m7a.top/#/assets/docs/FAQ)
+- 修复培养计划在没有足够资源时执行饰品提取
+- 修复部分文字 OCR 识别异常
+- 修复托盘区恢复时日志窗口显示异常空白
+- 修复二维码过期后无法正确刷新 [#843](https://github.com/moesnow/March7thAssistant/pull/843) @eloay
+
+## v2025.12.31
+- 支持通过米哈游启动器自动更新游戏（“设置→程序”内开启）
+- 定时任务支持添加通过启动器预下载游戏
+- 现在同一路径只会启动一个图形界面实例
+- 修复更多文字 OCR 识别异常 [#828](https://github.com/moesnow/March7thAssistant/pull/828) @loader3229
+- 修复云游戏不会选择排队队列的问题 [#830](https://github.com/moesnow/March7thAssistant/pull/830) @loader3229
+- 修复偶现无法正常切换程序窗口到前台
+- 修复切换主题后从托盘区恢复需要重新加载界面
+
+## v2025.12.26
 - 定时运行支持添加多个定时任务和外部程序
 - 优化没有找到任何兑换码时的处理逻辑
 - 调整云游戏设置项允许的最大排队时间范围

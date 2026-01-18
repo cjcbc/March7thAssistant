@@ -111,9 +111,11 @@ class CurrencyWars:
         else:
             Base.send_notification_with_screenshot("货币战争未完成", NotificationLevel.ERROR, self.screenshot)
             self.screenshot = None
-        self.get_reward()
+        has_reward = self.get_reward()
         if Date.is_next_mon_x_am(cfg.currencywars_timestamp, cfg.refresh_hour):
             self.check_currency_wars_score()
+        if has_reward and cfg.currencywars_bonus_enable:
+            self.process_ornament()
         log.hr("完成", 2)
 
     def check_currency_wars_score(self) -> bool:
@@ -154,6 +156,84 @@ class CurrencyWars:
                         auto.click_element("./assets/images/zh_CN/base/click_close.png", "image", 0.8, max_retries=10)
                         time.sleep(1)
                         auto.press_key("esc")
+                        return True
+        return False
+
+    def process_ornament(self):
+        instance_name = cfg.instance_names["饰品提取"]
+        # 使用培养目标的副本配置（如果启用）
+        try:
+            if cfg.build_target_enable:
+                from tasks.daily.buildtarget import BuildTarget
+                target_instances = BuildTarget.get_target_instances()
+
+                for target_type, target_name in target_instances:
+                    # 精确匹配副本类型
+                    if target_type == "饰品提取":
+                        log.info(f"使用培养目标副本: {target_name}")
+                        instance_name = target_name
+                        break
+        except Exception as e:
+            log.error(f"获取培养目标副本失败: {e}")
+
+        log.hr(f"开始位面饰品快速提取 - {instance_name}", 2)
+        screen.change_to("guide3")
+
+        instance_type_crop = (262.0 / 1920, 289.0 / 1080, 422.0 / 1920, 624.0 / 1080)
+        if not auto.click_element("饰品提取", "text", crop=instance_type_crop):
+            log.info("前往饰品提取失败，结束任务")
+            return False
+        time.sleep(1)
+
+        extract_crop = (691 / 1920, 285 / 1080, 970 / 1920, 139 / 1080)
+        if not auto.click_element("前往提取", "text", crop=extract_crop):
+            log.info("前往饰品提取失败，结束任务")
+            return False
+        time.sleep(1)
+
+        instance_name_crop = (616 / 1920, 418 / 1080, 889 / 1920, 416 / 1080)
+        auto.click_element("提取", "text", crop=instance_name_crop, action="move")
+        has_found = False
+        for i in range(5):
+            if auto.click_element(("提取"), "min_distance_text", crop=instance_name_crop, include=True, source=instance_name, source_type="text", position="right"):
+                has_found = True
+                break
+            auto.mouse_scroll(12, -1)
+            # 等待界面完全停止
+            time.sleep(1)
+        if not has_found:
+            log.info("未找到指定副本，结束任务")
+            auto.press_key("esc")
+            return False
+
+        result = auto.find_element("./assets/images/share/power/trailblaze_power/button.png", "image", 0.9, max_retries=10)
+        if result:
+            auto.click_element_with_pos(result, action="down")
+            time.sleep(0.5)
+            result = auto.find_element("./assets/images/share/power/trailblaze_power/plus.png", "image", 0.9)
+            if result:
+                auto.click_element_with_pos(result, action="move")
+                time.sleep(0.5)
+                auto.mouse_up()
+                if auto.click_element("./assets/images/zh_CN/base/confirm.png", "image", 0.9, max_retries=10):
+                    log.info("饰品提取完成，返回主界面")
+                    time.sleep(1)
+                    auto.press_key("esc")
+                    time.sleep(1)
+                    auto.press_key("esc")
+                    if screen.check_screen("guide3"):
+                        return True
+            else:
+                auto.mouse_up()
+        else:
+            auto.mouse_up()
+
+        log.info("饰品提取失败，返回主界面")
+        time.sleep(1)
+        auto.press_key("esc")
+        time.sleep(1)
+        auto.press_key("esc")
+        return False
 
     def start_war(self, type: Literal["normal", "overclock"] = "normal") -> bool:
         log.info("开始「货币战争」")
@@ -217,11 +297,11 @@ class CurrencyWars:
         self.prepare_characters = []  # 重置备战席角色
         self.update_backward()
 
-        start_time = time.time()
+        start_time = time.monotonic()
         timeout = 60 * 120  # 120分钟超时
         while True:
             # 检查超时
-            if time.time() - start_time > timeout:
+            if time.monotonic() - start_time > timeout:
                 log.error("货币战争主循环超时（120分钟），强制退出")
                 return False
 
@@ -245,7 +325,7 @@ class CurrencyWars:
             self.check_click_continue()
             self.check_supply_phase()
             if self.check_return_home():
-                end_time = time.time()
+                end_time = time.monotonic()
                 elapsed_time = end_time - start_time
                 minutes = int(elapsed_time // 60)
                 seconds = int(elapsed_time % 60)
@@ -258,8 +338,8 @@ class CurrencyWars:
         """
         exit_crop = (3.0 / 1920, 37.0 / 1080, 104.0 / 1920, 57.0 / 1080)
         if auto.find_element("./assets/images/screen/currency_wars/exit.png", "image", 0.9, crop=exit_crop):
-            start_time = time.time()
-            while time.time() - start_time < 7:
+            start_time = time.monotonic()
+            while time.monotonic() - start_time < 7:
                 self.click_origin()
                 time.sleep(0.1)
             if auto.find_element("./assets/images/screen/currency_wars/exit.png", "image", 0.9, crop=exit_crop):
@@ -1012,10 +1092,10 @@ class CurrencyWars:
         """
         # 游戏存在bug，点击开启的速度太快无法弹出选择界面 :(
         res = auto.find_element("开启", "text", None, crop=(376.0 / 1920, 839.0 / 1080, 1125.0 / 1920, 148.0 / 1080), include=True)
-        start_time = time.time()
+        start_time = time.monotonic()
         while res:
             # 检查超时（30秒）
-            if time.time() - start_time > 30:
+            if time.monotonic() - start_time > 30:
                 log.error("开启宝箱操作超时，退出循环")
                 break
 

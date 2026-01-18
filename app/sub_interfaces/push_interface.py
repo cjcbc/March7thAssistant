@@ -1,11 +1,12 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QToolBox, QWidget, QVBoxLayout, QTabBar, QInputDialog
-from PyQt5.QtWidgets import QFrame
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabBar, QInputDialog
+from PySide6.QtWidgets import QFrame
 from qfluentwidgets import FluentStyleSheet
 from qfluentwidgets import FluentIcon as FIF
 from app.card.pushsettingcard1 import PushSettingCard
 from app.card.switchsettingcard1 import SwitchSettingCard1
 from module.config import cfg
+
 
 class PushToolsBox(QWidget):
     def __init__(self, parent: QWidget | None = ..., flags: Qt.WindowFlags | Qt.WindowType = ...):
@@ -39,9 +40,9 @@ class PushToolsBox(QWidget):
         self.tabBar = QTabBar(parent=self)
         self.tabBar.setStyleSheet(style_sheet)
         FluentStyleSheet.TAB_VIEW.apply(self.tabBar)
-        self.tabBar.addTab(self.tr('Windows'))
-        self.tabBar.addTab(self.tr('Telegram'))
-        self.tabBar.addTab(self.tr('Smtp'))
+        self.tabBar.addTab('Windows')
+        self.tabBar.addTab('Telegram')
+        self.tabBar.addTab('Smtp')
         self.vLayout = QVBoxLayout()
         self.vLayout.addWidget(self.tabBar)
         for card in self.pushCars:
@@ -49,6 +50,7 @@ class PushToolsBox(QWidget):
             card.hide()
         self.windowPushCard.show()
         _self = self
+
         def currentChanged(self):
             for card in _self.pushCars:
                 if (card.isVisible()):
@@ -62,12 +64,13 @@ class PushToolsBox(QWidget):
         self.setLayout(self.vLayout)
         self.adjustSize()
 
+
 class WindowsPushCard(QWidget):
     def __init__(self, parent: QWidget | None = ..., flags: Qt.WindowFlags | Qt.WindowType = ...):
         super().__init__(parent=parent)
         self.winotifyEnableCard = SwitchSettingCard1(
             FIF.BACK_TO_WINDOW,
-            self.tr('启用 Windows 通知'),
+            '启用 Windows 通知',
             None,
             "notify_winotify_enable"
         )
@@ -81,14 +84,14 @@ class TelegramPushCard(QWidget):
         super().__init__(parent=parent)
         self.winotifyEnableCard = SwitchSettingCard1(
             FIF.BACK_TO_WINDOW,
-            self.tr('启用 Telegram 通知'),
+            '启用 Telegram 通知',
             None,
             "notify_telegram_enable"
         )
         self.telegramTokenCard = PushSettingCard(
-            self.tr('修改'),
+            '修改',
             FIF.GAME,
-            self.tr("Telegram Token"),
+            "Telegram Token",
             "notify_telegram_token",
             cfg.notify_telegram_token,
             self,
@@ -105,12 +108,13 @@ class TelegramPushCard(QWidget):
             cfg.set_value("notify_telegram_token", token)
             self.telegramTokenCard.setContent(token)
 
+
 class SmtpPushCard(QFrame):
     def __init__(self, parent: QWidget | None = ..., flags: Qt.WindowFlags | Qt.WindowType = ...):
         super().__init__(parent=parent)
         self.winotifyEnableCard = SwitchSettingCard1(
             FIF.BACK_TO_WINDOW,
-            self.tr('启用 Smtp 通知'),
+            '启用 Smtp 通知',
             None,
             "notify_smtp_enable"
         )

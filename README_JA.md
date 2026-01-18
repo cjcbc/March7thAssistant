@@ -52,9 +52,12 @@
 ## 注意事項
 
 - **PC版**で `1920*1080` 解像度のウィンドウまたはフルスクリーンでゲームを実行する必要があります（HDRには非対応）
+- **macOS** と **Linux** に対応（中国サーバーのクラウドゲームのみ）。[Docker デプロイ](https://m7a.top/#/assets/docs/Docker)も利用可能
 - 模擬宇宙関連 [プロジェクトドキュメント](https://github.com/Night-stars-1/Auto_Simulated_Universe_Docs/blob/docs/docs/guide/index.md)  [Q&A](https://github.com/Night-stars-1/Auto_Simulated_Universe_Docs/blob/docs/docs/guide/qa.md)
 - バックグラウンド実行やマルチディスプレイの場合は [リモートローカルマルチユーザーデスクトップ](https://m7a.top/#/assets/docs/Background) をお試しください
-- エラーが発生した場合は [Issue](https://github.com/moesnow/March7thAssistant/issues) でフィードバックをお願いします。質問や議論は [Discussions](https://github.com/moesnow/March7thAssistant/discussions) へどうぞ。[PR](https://github.com/moesnow/March7thAssistant/pulls) も歓迎します
+- エラーが発生した場合は [Issue](https://github.com/moesnow/March7thAssistant/issues) でフィードバックをお願いします。質問や議論は [Discussions](https://github.com/moesnow/March7thAssistant/discussions) へどうぞ。
+
+- PR（プルリクエスト）は歓迎しますが、送る前に [CONTRIBUTING.md](CONTRIBUTING.md) をご確認ください。
 
 ## ダウンロードとインストール
 
@@ -156,7 +159,7 @@ March7thAssistant は以下のオープンソースプロジェクトのサポ�
 
 - フィールド探索自動化 [https://github.com/linruowuyin/Fhoe-Rail](https://github.com/linruowuyin/Fhoe-Rail)
 
-- OCR文字認識 [https://github.com/hiroi-sora/PaddleOCR-json](https://github.com/hiroi-sora/PaddleOCR-json)
+- OCR文字認識 [https://github.com/RapidAI/RapidOCR](https://github.com/RapidAI/RapidOCR)
 
 - GUIコンポーネントライブラリ [https://github.com/zhiyiYo/PyQt-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets)
 

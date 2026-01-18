@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QStackedWidget, QSpacerItem, QScroller, QScrollerProperties
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QStackedWidget, QSpacerItem, QScroller, QScrollerProperties
 from qfluentwidgets import qconfig, ScrollArea, Pivot
 from .common.style_sheet import StyleSheet
 import markdown
@@ -16,7 +16,7 @@ class HelpInterface(ScrollArea):
         self.pivot = Pivot(self)
         self.stackedWidget = QStackedWidget(self)
 
-        self.helpLabel = QLabel(self.tr("帮助"), self)
+        self.helpLabel = QLabel("帮助", self)
         self.tutorialLabel = QLabel(parent)
         self.faqLabel = QLabel(parent)
         self.tasksLabel = QLabel(parent)
@@ -30,7 +30,7 @@ class HelpInterface(ScrollArea):
         self.setWidget(self.scrollWidget)
         self.setWidgetResizable(True)
         self.setViewportMargins(0, 140, 0, 5)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.setObjectName('helpInterface')
         self.scrollWidget.setObjectName('scrollWidget')
@@ -52,16 +52,32 @@ a {
     color: #f18cb9;
     font-weight: bold;
 }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid black;
+  padding: 1px 30px 1px 30px;
+  text-align: left;
+  font-size: 15px;
+}
 </style>
 """
         try:
             with open("./assets/docs/Tutorial.md", 'r', encoding='utf-8') as file:
-                self.content = file.read().replace('/assets/docs/Background.md', 'https://m7a.top/#/assets/docs/Background')
+                self.content = file.read().replace('/assets/docs/Background.md', 'https://m7a.top/#/assets/docs/Background').replace('/assets/docs/Docker.md', 'https://m7a.top/#/assets/docs/Docker')
                 self.content = '\n'.join(self.content.split('\n')[1:])
         except FileNotFoundError:
             sys.exit(1)
-        tutorial_content = tutorial_style + markdown.markdown(self.content).replace('<h2>', '<br><h2>').replace('</h2>', '</h2><hr>').replace('<br>', '', 1) + '<br>'
-        self.tutorialLabel.setText(tutorial_content)
+        self.tutorial_content = tutorial_style + markdown.markdown(self.content, extensions=['tables']).replace('<h2>', '<br><h2>').replace('</h2>', '</h2><hr>').replace('<br>', '', 1) + '<br>'
+
+        if qconfig.theme.name == "DARK":
+            self.tutorialLabel.setText(self.tutorial_content.replace("border: 1px solid black;", "border: 1px solid white;"))
+        else:
+            self.tutorialLabel.setText(self.tutorial_content)
         self.tutorialLabel.setOpenExternalLinks(True)
         self.tutorialLabel.linkActivated.connect(self.open_url)
 
@@ -164,14 +180,14 @@ a {
         self.helpLabel.move(36, 30)
         self.pivot.move(40, 80)
         # self.vBoxLayout.addWidget(self.pivot, 0, Qt.AlignTop)
-        self.vBoxLayout.addWidget(self.stackedWidget, 0, Qt.AlignTop)
+        self.vBoxLayout.addWidget(self.stackedWidget, 0, Qt.AlignmentFlag.AlignTop)
         self.vBoxLayout.setContentsMargins(36, 0, 36, 0)
 
         # self.vBoxLayout.addWidget(self.tutorialLabel, 0, Qt.AlignTop)
-        self.addSubInterface(self.tutorialLabel, 'tutorialLabel', self.tr('使用教程'))
-        self.addSubInterface(self.faqLabel, 'faqLabel', self.tr('常见问题'))
-        self.addSubInterface(self.tasksLabel, 'tasksLabel', self.tr('每日实训'))
-        self.addSubInterface(self.changelogLabel, 'changelogLabel', self.tr('更新日志'))
+        self.addSubInterface(self.tutorialLabel, 'tutorialLabel', '使用教程')
+        self.addSubInterface(self.faqLabel, 'faqLabel', '常见问题')
+        self.addSubInterface(self.tasksLabel, 'tasksLabel', '每日实训')
+        self.addSubInterface(self.changelogLabel, 'changelogLabel', '更新日志')
 
         self.stackedWidget.currentChanged.connect(self.onCurrentIndexChanged)
         self.pivot.setCurrentItem(self.stackedWidget.currentWidget().objectName())
@@ -207,6 +223,11 @@ a {
         QDesktopServices.openUrl(QUrl(url))
 
     def __themeChanged(self):
+        if qconfig.theme.name == "DARK":
+            self.tutorialLabel.setText(self.tutorial_content.replace("border: 1px solid black;", "border: 1px solid white;"))
+        else:
+            self.tutorialLabel.setText(self.tutorial_content)
+
         if qconfig.theme.name == "DARK":
             self.tasksLabel.setText(self.tasks_content.replace("border: 1px solid black;", "border: 1px solid white;"))
         else:

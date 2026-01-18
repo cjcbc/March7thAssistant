@@ -1,6 +1,6 @@
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
+from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QUrl
 from qfluentwidgets import InfoBar, InfoBarPosition
 
 from ..card.messagebox_custom import MessageBoxUpdate
@@ -25,7 +25,7 @@ class UpdateStatus(Enum):
 
 class UpdateThread(QThread):
     """负责后台检查更新的线程类。"""
-    updateSignal = pyqtSignal(UpdateStatus)
+    updateSignal = Signal(UpdateStatus)
 
     def __init__(self, timeout, flag):
         super().__init__()
@@ -44,12 +44,12 @@ class UpdateThread(QThread):
     def fetch_latest_release_info(self):
         """获取最新的发布信息。"""
         response = requests.get(
-            FastestMirror.get_github_api_mirror("moesnow", "March7thAssistant", not (cfg.update_prerelease_enable and cfg.update_source == "GitHub")),
+            FastestMirror.get_github_api_mirror("moesnow", "March7thAssistant", not cfg.update_prerelease_enable),
             timeout=10,
             headers=cfg.useragent
         )
         response.raise_for_status()
-        return response.json()[0] if (cfg.update_prerelease_enable and cfg.update_source == "GitHub") else response.json()
+        return response.json()[0] if cfg.update_prerelease_enable else response.json()
 
     def get_download_url_from_assets(self, assets):
         """从发布信息中获取下载URL。"""
@@ -86,8 +86,11 @@ class UpdateThread(QThread):
                     self.updateSignal.emit(UpdateStatus.FAILURE)
                     return
                 # 符合Mirror酱条件
+                url = f"https://mirrorchyan.com/api/resources/March7thAssistant/latest?current_version={cfg.version}&cdk={cfg.mirrorchyan_cdk}&user_agent=m7a_app"
+                if cfg.update_prerelease_enable:
+                    url += "&channel=beta"
                 response = requests.get(
-                    f"https://mirrorchyan.com/api/resources/March7thAssistant/latest?current_version={cfg.version}&cdk={cfg.mirrorchyan_cdk}&user_agent=m7a_app",
+                    url,
                     timeout=10,
                     headers=cfg.useragent
                 )
@@ -157,9 +160,9 @@ def checkUpdate(self, timeout=5, flag=False):
                 assert_url = self.update_thread.mirrorchyan_assert_url
                 if assert_url == "":
                     InfoBar.error(
-                        title=self.tr('尚未配置 Mirror酱 更新源 (╥╯﹏╰╥)'),
+                        title='尚未配置 Mirror酱 更新源 (╥╯﹏╰╥)',
                         content="请在 “设置 → 关于 → 更新源” 中选择 Mirror酱 并填写有效 CDK",
-                        orient=Qt.Horizontal,
+                        orient=Qt.Orientation.Horizontal,
                         isClosable=True,
                         position=InfoBarPosition.TOP,
                         duration=5000,
@@ -194,9 +197,9 @@ def checkUpdate(self, timeout=5, flag=False):
         elif status == UpdateStatus.SUCCESS:
             # 显示当前为最新版本的信息
             InfoBar.success(
-                title=self.tr('当前是最新版本(＾∀＾●)'),
+                title='当前是最新版本(＾∀＾●)',
                 content="",
-                orient=Qt.Horizontal,
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=1000,
@@ -205,15 +208,54 @@ def checkUpdate(self, timeout=5, flag=False):
         else:
             # 显示检查更新失败的信息
             InfoBar.warning(
-                title=self.tr('检测更新失败(╥╯﹏╰╥)'),
-                content=self.update_thread.error_msg,
-                orient=Qt.Horizontal,
+                title='检测更新失败(╥╯﹏╰╥)',
+                content=getattr(self, 'update_thread', None).error_msg if getattr(self, 'update_thread', None) is not None else '',
+                orient=Qt.Orientation.Horizontal,
                 isClosable=True,
                 position=InfoBarPosition.TOP,
                 duration=5000,
                 parent=self
             )
 
+    # 若已有检查线程并且正在运行，则不再重复启动
+    existing_thread = getattr(self, 'update_thread', None)
+    if existing_thread is not None:
+        if existing_thread.isRunning():
+            InfoBar.warning(
+                title='正在检测更新',
+                content='请稍候，更新检查仍在进行中',
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=1000,
+                parent=self
+            )
+            return
+        else:
+            try:
+                existing_thread.deleteLater()
+            except Exception:
+                pass
+            self.update_thread = None
+
+    # 创建并启动新线程
     self.update_thread = UpdateThread(timeout, flag)
+    # 将线程归属于当前窗口，避免在 Python 端无引用时被意外销毁
+    try:
+        self.update_thread.setParent(self)
+    except Exception:
+        pass
+
     self.update_thread.updateSignal.connect(handle_update)
+
+    # def _on_finished():
+    #     # 线程结束后清理引用和删除对象
+    #     try:
+    #         if getattr(self, 'update_thread', None) is not None:
+    #             self.update_thread.deleteLater()
+    #     except Exception:
+    #         pass
+    #     self.update_thread = None
+
+    # self.update_thread.finished.connect(_on_finished)
     self.update_thread.start()

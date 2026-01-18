@@ -77,28 +77,163 @@ args = parse_args()
 # 如果不需要命令行输出，隐藏控制台窗口
 hide_console()
 
-import pyuac
-if not pyuac.isUserAdmin():
+if sys.platform == 'win32':
+    import pyuac
+    if not pyuac.isUserAdmin():
+        try:
+            pyuac.runAsAdmin(False)
+            sys.exit(0)
+        except Exception:
+            sys.exit(1)
+
+from PySide6.QtCore import Qt, QLocale, qInstallMessageHandler, QtMsgType
+from PySide6.QtWidgets import QApplication
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
+import json
+import hashlib
+from contextlib import redirect_stdout
+with redirect_stdout(None):
+    from qfluentwidgets import FluentTranslator
+
+
+# 自定义消息处理器，过滤掉特定的 Qt 警告
+def qt_message_handler(mode, context, message):
+    # SwitchButton 组件在某些环境下会触发以下警告，暂时忽略：
+    # QFont::setPointSize: Point size <= 0 (-1), must be greater than 0
+    if "QFont::setPointSize: Point size <= 0" in message:
+        return  # 忽略这个警告
+    # 其他消息正常输出
+    if mode == QtMsgType.QtWarningMsg:
+        print(f"Qt Warning: {message}")
+    elif mode == QtMsgType.QtCriticalMsg:
+        print(f"Qt Critical: {message}")
+    elif mode == QtMsgType.QtFatalMsg:
+        print(f"Qt Fatal: {message}")
+
+
+qInstallMessageHandler(qt_message_handler)
+
+# 单实例相关变量
+_main_window = None
+_pending_messages = []
+
+
+def _get_server_key():
+    """根据程序路径生成唯一的本地 socket 名称，保证“相同路径”视为同一应用实例。"""
+    path = os.path.abspath(sys.executable) if getattr(sys, 'frozen', False) else os.path.abspath(__file__)
+    h = hashlib.sha1(path.encode('utf-8')).hexdigest()
+    return f"March7thAssistant_{h}"
+
+
+def notify_existing_instance(key, payload_bytes, timeout=500):
+    """尝试连接已有实例并发送 payload（bytes），成功返回 True，否则 False。"""
     try:
-        pyuac.runAsAdmin(False)
-        sys.exit(0)
+        sock = QLocalSocket()
+        sock.connectToServer(key)
+        if not sock.waitForConnected(timeout):
+            return False
+        sock.write(payload_bytes)
+        sock.flush()
+        sock.waitForBytesWritten(200)
+        sock.disconnectFromServer()
+        sock.close()
+        return True
     except Exception:
-        sys.exit(1)
+        return False
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
-from app.main_window import MainWindow
 
-# 启用 DPI 缩放
+def start_local_server(key):
+    """启动 QLocalServer，接收其他实例消息并交给主窗口处理。"""
+    try:
+        try:
+            QLocalServer.removeServer(key)
+        except Exception:
+            pass
+        server = QLocalServer()
+        if not server.listen(key):
+            return None
+
+        def _on_new_conn():
+            conn = server.nextPendingConnection()
+            if not conn:
+                return
+
+            def _read():
+                try:
+                    raw = bytes(conn.readAll())
+                    if not raw:
+                        return
+                    try:
+                        msg = json.loads(raw.decode('utf-8'))
+                    except Exception:
+                        # 兼容性：如果不是 JSON，则当作简单激活请求处理
+                        msg = {'action': 'activate', 'raw': raw.decode('utf-8', errors='ignore')}
+
+                    # 如果主窗口已就绪，直接调用处理方法，否则缓存起来等待主窗口创建
+                    if _main_window is not None:
+                        try:
+                            _main_window.handle_external_activate(task=msg.get('task'), exit_on_complete=msg.get('exit', False))
+                        except Exception:
+                            pass
+                    else:
+                        _pending_messages.append(msg)
+                finally:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+
+            conn.readyRead.connect(_read)
+            conn.disconnected.connect(conn.deleteLater)
+
+        server.newConnection.connect(_on_new_conn)
+        return server
+    except Exception:
+        return None
+
+
+# 启用 DPI 缩放 (PySide6 默认启用高 DPI 缩放)
 QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
 
 if __name__ == "__main__":
+    # 设置应用属性，必须在创建 QApplication 之前调用
+    QApplication.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+    
     app = QApplication(sys.argv)
-    app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
 
+    # 创建翻译器实例，生命周期必须和 app 相同
+    translator = FluentTranslator(QLocale(QLocale.Language.Chinese, QLocale.Country.China))
+    app.installTranslator(translator)
+
+    # 单实例：尝试通知现有实例（若存在），若成功则退出；否则在本实例启动 server
+    _key = _get_server_key()
+    try:
+        payload = json.dumps({'action': 'activate', 'task': args.task, 'exit': args.exit}).encode('utf-8')
+    except Exception:
+        payload = b'ACTIVATE'
+
+    if notify_existing_instance(_key, payload):
+        print("已有程序实例在运行，已将激活请求发送给它，退出当前实例。")
+        sys.exit(0)
+    else:
+        _server = start_local_server(_key)
+
+    if sys.platform == 'darwin':
+        from qfluentwidgets import setFontFamilies
+        setFontFamilies(['PingFang SC'])
     # 传递任务参数给主窗口
+    from app.main_window import MainWindow
     w = MainWindow(task=args.task, exit_on_complete=args.exit)
 
-    sys.exit(app.exec_())
+    # 注册主窗口并处理启动期间收到的挂起消息
+    _main_window = w
+    if _pending_messages:
+        for msg in _pending_messages:
+            try:
+                w.handle_external_activate(task=msg.get('task'), exit_on_complete=msg.get('exit', False))
+            except Exception:
+                pass
+        _pending_messages.clear()
+
+    sys.exit(app.exec())

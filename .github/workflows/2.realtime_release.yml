@@ -6,11 +6,6 @@ on:
   pull_request:
     paths:
       - "**.py"
-  push:
-    branches:
-      - main
-    paths:
-      - "**.py"
 
 jobs:
   build:
@@ -19,6 +14,9 @@ jobs:
     env:
       PYTHONHASHSEED: 0
       SOURCE_DATE_EPOCH: 315532800
+      MARCH7TH_LOG_LEVEL: DEBUG
+      MARCH7TH_BROWSER_DOWNLOAD_USE_MIRROR: false
+      PYTHONIOENCODING: utf-8
 
     steps:
       # 签出代码
@@ -46,7 +44,7 @@ jobs:
         if: steps.check_version.outputs.should_build == 'true'
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12.10"
+          python-version: "3.13.11"
           cache: "pip"
 
       # 安装依赖
@@ -54,14 +52,15 @@ jobs:
         if: steps.check_version.outputs.should_build == 'true'
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller==6.14.1
+          pip install -r requirements.txt pyinstaller==6.17.0
+          python build.py --task ocr
 
       # 生成程序
       - name: Generate program
         if: steps.check_version.outputs.should_build == 'true'
         run: |
-          pyinstaller -D --distpath .\dist\ -i .\assets\logo\Terminal.ico --contents-directory libraries --exclude-module PyQt5 --uac-admin -n "March7th Assistant" main.py -y
-          pyinstaller -D --distpath .\dist\ -i .\assets\logo\March7th.ico --contents-directory libraries --uac-admin -n "March7th Launcher" app.py -y
+          pyinstaller -D --distpath .\dist\ -i .\assets\logo\Terminal.ico --contents-directory libraries --collect-all rapidocr --collect-all pyzbar --exclude-module PySide6 --uac-admin -n "March7th Assistant" main.py -y
+          pyinstaller -D --distpath .\dist\ -i .\assets\logo\March7th.ico --contents-directory libraries --collect-all rapidocr --collect-all pyzbar --uac-admin -n "March7th Launcher" app.py -y
           pyinstaller -F --distpath .\dist\March7thAssistant\ -i .\assets\logo\Updater.ico -n "March7th Updater" --exclude-module numpy --exclude-module pandas --uac-admin updater.py -y
 
       # 移动资源到dist目录
@@ -78,7 +77,7 @@ jobs:
         if: steps.check_version.outputs.should_build == 'true'
         run: |
           Rename-Item -Path .\dist\March7thAssistant -NewName March7thAssistant_${{ github.run_number }}
-          .\assets\binary\7za.exe a -t7z .\dist\March7thAssistant_${{ github.run_number }}.7z .\dist\March7thAssistant_${{ github.run_number }}\
+          .\assets\binary\7za.exe a -t7z -m0=lzma2 -ms=on -mx=9 -md=128m .\dist\March7thAssistant_${{ github.run_number }}.7z .\dist\March7thAssistant_${{ github.run_number }}\
 
       # 上传压缩包
       - name: Upload artifact

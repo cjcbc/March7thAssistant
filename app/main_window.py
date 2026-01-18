@@ -1,14 +1,11 @@
-from PyQt5.QtCore import Qt, QSize, QFileSystemWatcher, pyqtSignal, QObject
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication, QSystemTrayIcon, QAction
+from PySide6.QtCore import Qt, QSize, QFileSystemWatcher, Signal, QObject
+from PySide6.QtGui import QIcon, QAction
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
-from contextlib import redirect_stdout
-
-with redirect_stdout(None):
-    from app.tools.game_starter import GameStartStatus, GameLaunchThread
-    from qfluentwidgets import NavigationItemPosition, MSFluentWindow, SplashScreen, setThemeColor, NavigationBarPushButton, toggleTheme, setTheme, Theme
-    from qfluentwidgets import FluentIcon as FIF
-    from qfluentwidgets import InfoBar, InfoBarPosition, SystemTrayMenu
+from qfluentwidgets import NavigationItemPosition, MSFluentWindow, SplashScreen, setThemeColor, NavigationBarPushButton, setTheme, Theme
+from qfluentwidgets import FluentIcon as FIF
+from qfluentwidgets import InfoBar, InfoBarPosition, SystemTrayMenu
+from app.tools.game_starter import GameStartStatus, GameLaunchThread
 
 from .home_interface import HomeInterface
 from .help_interface import HelpInterface
@@ -26,14 +23,16 @@ from .tools.announcement import checkAnnouncement
 from .tools.disclaimer import disclaimer
 
 from module.config import cfg
+from module.logger import log
 from module.game import get_game_controller
 import base64
 import os
+import sys
 
 
 class ConfigWatcher(QObject):
     """配置文件监视器"""
-    config_changed = pyqtSignal()
+    config_changed = Signal()
 
     def __init__(self, config_path, parent=None):
         super().__init__(parent)
@@ -48,7 +47,7 @@ class ConfigWatcher(QObject):
 
     def _on_config_changed(self, path):
         """检测到文件变化，延迟处理避免频繁触发"""
-        from PyQt5.QtCore import QTimer
+        from PySide6.QtCore import QTimer
 
         # 清除之前的定时器
         if self.debounce_timer:
@@ -85,7 +84,7 @@ class MainWindow(MSFluentWindow):
 
         # 如果有启动任务，延迟执行
         if self.startup_task:
-            from PyQt5.QtCore import QTimer
+            from PySide6.QtCore import QTimer
             QTimer.singleShot(1000, self._executeStartupTask)
         else:
             # 检查更新
@@ -99,19 +98,36 @@ class MainWindow(MSFluentWindow):
             start_task(self.startup_task)
 
     def initWindow(self):
-        self.setMicaEffectEnabled(False)
+        # 开启 “在标题栏和窗口边框上显示强调色” 后，会导致窗口顶部出现异色横条 bug 已经修复
+        # https://github.com/zhiyiYo/PyQt-Frameless-Window/pull/186
+        # 要求 PySideSix-Frameless-Window>=0.7.0
+        # self.setMicaEffectEnabled(False)
+
         setThemeColor('#f18cb9', lazy=True)
         setTheme(Theme.AUTO, lazy=True)
 
         # 禁用最大化
-        self.titleBar.maxBtn.setHidden(True)
-        self.titleBar.maxBtn.setDisabled(True)
-        self.titleBar.setDoubleClickEnabled(False)
-        self.setResizeEnabled(False)
-        self.setWindowFlags(Qt.WindowCloseButtonHint)
+        # self.titleBar.maxBtn.setHidden(True)
+        # self.titleBar.maxBtn.setDisabled(True)
+        # self.titleBar.setDoubleClickEnabled(False)
+        # self.setResizeEnabled(False)
+
+        # self.setWindowFlags(Qt.WindowCloseButtonHint)
         # self.setWindowFlags(Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
 
-        self.resize(960, 640)
+        # 设置最小尺寸
+        min_width = 960
+        min_height = 640
+        self.setMinimumWidth(min_width)
+        self.setMinimumHeight(min_height)
+
+        # 从配置文件读取窗口尺寸，确保不低于最小值
+        saved_width = cfg.get_value('window_width', min_width)
+        saved_height = cfg.get_value('window_height', min_height)
+        window_width = max(saved_width, min_width)
+        window_height = max(saved_height, min_height)
+        self.resize(window_width, window_height)
+
         self.setWindowIcon(QIcon('./assets/logo/March7th.ico'))
         self.setWindowTitle("March7th Assistant")
 
@@ -121,11 +137,16 @@ class MainWindow(MSFluentWindow):
         self.splashScreen.titleBar.maxBtn.setHidden(True)
         self.splashScreen.raise_()
 
-        desktop = QApplication.desktop().availableGeometry()
-        w, h = desktop.width(), desktop.height()
+        screen = QApplication.primaryScreen().availableGeometry()
+        w, h = screen.width(), screen.height()
         self.move(w // 2 - self.width() // 2, h // 2 - self.height() // 2)
 
-        self.show()
+        # 根据配置决定窗口显示方式
+        if cfg.get_value('window_maximized', False):
+            self.showMaximized()
+        else:
+            self.show()
+
         QApplication.processEvents()
 
     def initInterface(self):
@@ -145,11 +166,11 @@ class MainWindow(MSFluentWindow):
         self.logInterface.taskFinished.connect(self._onTaskFinished)
 
     def initNavigation(self):
-        self.addSubInterface(self.homeInterface, FIF.HOME, self.tr('主页'))
-        self.addSubInterface(self.helpInterface, FIF.BOOK_SHELF, self.tr('帮助'))
-        # self.addSubInterface(self.changelogInterface, FIF.UPDATE, self.tr('更新日志'))
-        self.addSubInterface(self.warpInterface, FIF.SHARE, self.tr('抽卡记录'))
-        self.addSubInterface(self.toolsInterface, FIF.DEVELOPER_TOOLS, self.tr('工具箱'))
+        self.addSubInterface(self.homeInterface, FIF.HOME, '主页')
+        self.addSubInterface(self.helpInterface, FIF.BOOK_SHELF, '帮助')
+        # self.addSubInterface(self.changelogInterface, FIF.UPDATE, '更新日志')
+        self.addSubInterface(self.warpInterface, FIF.SHARE, '抽卡记录')
+        self.addSubInterface(self.toolsInterface, FIF.DEVELOPER_TOOLS, '工具箱')
 
         self.navigationInterface.addWidget(
             'startGameButton',
@@ -157,7 +178,7 @@ class MainWindow(MSFluentWindow):
             self.startGame,
             NavigationItemPosition.BOTTOM)
 
-        self.addSubInterface(self.logInterface, FIF.COMMAND_PROMPT, self.tr('日志'), position=NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.logInterface, FIF.COMMAND_PROMPT, '日志', position=NavigationItemPosition.BOTTOM)
 
         # self.navigationInterface.addWidget(
         #     'refreshButton',
@@ -183,7 +204,7 @@ class MainWindow(MSFluentWindow):
             NavigationItemPosition.BOTTOM
         )
 
-        self.addSubInterface(self.settingInterface, FIF.SETTING, self.tr('设置'), position=NavigationItemPosition.BOTTOM)
+        self.addSubInterface(self.settingInterface, FIF.SETTING, '设置', position=NavigationItemPosition.BOTTOM)
 
         self.splashScreen.finish()
         self.themeListener = checkThemeChange(self)
@@ -203,8 +224,7 @@ class MainWindow(MSFluentWindow):
 
         # 显示主界面
         show_action = QAction('显示主界面', self)
-        show_action.triggered.connect(self.showNormal)
-        show_action.triggered.connect(self.activateWindow)
+        show_action.triggered.connect(self._show_main_window)
         tray_menu.addAction(show_action)
 
         # 完整运行
@@ -214,14 +234,42 @@ class MainWindow(MSFluentWindow):
 
         tray_menu.addSeparator()
 
+        # 打开设置界面
+        setting_action = QAction('设置', self)
+
+        def _open_settings():
+            try:
+                self.showNormal()
+                self.activateWindow()
+                if hasattr(self, 'settingInterface'):
+                    self.switchTo(self.settingInterface)
+            except Exception:
+                pass
+        setting_action.triggered.connect(_open_settings)
+        tray_menu.addAction(setting_action)
+
         # 退出程序
         quit_action = QAction('退出', self)
         quit_action.triggered.connect(self.quitApp)
         tray_menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.activated.connect(self.onTrayIconActivated)
+        if sys.platform == 'win32':
+            self.tray_icon.activated.connect(self.onTrayIconActivated)
         self.tray_icon.show()
+
+    def _show_main_window(self):
+        """显示主界面，macOS 下确保窗口置顶"""
+        self.showNormal()
+        try:
+            if sys.platform == 'darwin':
+                self.raise_()
+                self.activateWindow()
+                QApplication.setActiveWindow(self)
+            else:
+                self.activateWindow()
+        except Exception:
+            pass
 
     def onTrayIconActivated(self, reason):
         """托盘图标被激活时的处理"""
@@ -232,6 +280,26 @@ class MainWindow(MSFluentWindow):
                 self.showNormal()
                 self.activateWindow()
 
+    def handle_external_activate(self, task=None, exit_on_complete=False):
+        """响应来自其他实例的激活请求：置顶窗口并根据需要启动任务或设置退出行为"""
+        from PySide6.QtCore import QTimer
+        try:
+            # 显示并置顶窗口
+            self.showNormal()
+            self.raise_()
+            self.activateWindow()
+        except Exception:
+            pass
+
+        # 如果指定了任务，延迟执行以保证界面初始化完成
+        if task:
+            self.startup_task = task
+            QTimer.singleShot(200, self._executeStartupTask)
+
+        # 设置任务完成后是否退出的标志
+        if exit_on_complete:
+            self.exit_on_complete = exit_on_complete
+
     def _on_tray_menu_about_to_show(self):
         """托盘菜单即将显示时激活窗口，解决 Windows 上点击外部区域无法关闭菜单的问题"""
         self.activateWindow()
@@ -241,7 +309,7 @@ class MainWindow(MSFluentWindow):
         # 检查是否有任务正在运行
         if self.logInterface.isTaskRunning():
             InfoBar.warning(
-                title=self.tr('任务正在运行'),
+                title='任务正在运行',
                 content="请先停止当前任务后再启动新任务",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -271,7 +339,7 @@ class MainWindow(MSFluentWindow):
         """处理任务完成信号"""
         # 如果是启动任务且设置了完成后退出，则在任务成功完成时退出程序
         if self.exit_on_complete and self.startup_task and exit_code == 0:
-            from PyQt5.QtCore import QTimer
+            from PySide6.QtCore import QTimer
             # 延迟一小段时间让用户看到完成状态
             QTimer.singleShot(5000, self.quitApp)
         else:
@@ -281,6 +349,19 @@ class MainWindow(MSFluentWindow):
     def quitApp(self):
         """退出应用程序"""
         self._do_quit()
+
+    def _saveWindowState(self):
+        """保存窗口尺寸和最大化状态到配置文件"""
+        try:
+            is_maximized = self.isMaximized()
+            cfg.set_value('window_maximized', is_maximized)
+
+            # 只在非最大化状态下保存窗口尺寸
+            if not is_maximized:
+                cfg.set_value('window_width', self.width())
+                cfg.set_value('window_height', self.height())
+        except Exception:
+            pass
 
     def _on_config_file_changed(self):
         """重新加载配置文件并刷新界面"""
@@ -316,7 +397,7 @@ class MainWindow(MSFluentWindow):
             self.removeInterface(old_setting_interface, isDelete=True)
 
             # 添加新的设置界面
-            self.addSubInterface(self.settingInterface, FIF.SETTING, self.tr('设置'), position=NavigationItemPosition.BOTTOM)
+            self.addSubInterface(self.settingInterface, FIF.SETTING, '设置', position=NavigationItemPosition.BOTTOM)
 
             # 只有在重新加载配置前是在设置界面时，才切换到新的设置界面
             if is_in_setting_interface:
@@ -325,7 +406,7 @@ class MainWindow(MSFluentWindow):
             # 只有在窗口可见时才显示提示
             if self.isVisible():
                 InfoBar.success(
-                    title=self.tr('配置已更新'),
+                    title='配置已更新',
                     content="检测到配置文件变化，已自动重新加载",
                     orient=Qt.Horizontal,
                     isClosable=True,
@@ -337,7 +418,7 @@ class MainWindow(MSFluentWindow):
             # 只有在窗口可见时才显示提示
             if self.isVisible():
                 InfoBar.warning(
-                    title=self.tr('配置加载失败'),
+                    title='配置加载失败',
                     content=str(e),
                     orient=Qt.Horizontal,
                     isClosable=True,
@@ -368,6 +449,9 @@ class MainWindow(MSFluentWindow):
         """执行退出前的清理并退出程序
         e: 可选的 QCloseEvent，用于调用 e.accept()
         """
+        # 保存窗口尺寸和最大化状态
+        self._saveWindowState()
+
         try:
             self.hide()
             self.tray_icon.hide()
@@ -459,7 +543,7 @@ class MainWindow(MSFluentWindow):
         game = get_game_controller()
         if cfg.cloud_game_enable and cfg.browser_type == "integrated" and not game.is_integrated_browser_downloaded():
             InfoBar.warning(
-                title=self.tr('正在下载内置浏览器(ง •̀_•́)ง'),
+                title='正在下载内置浏览器(ง •̀_•́)ง',
                 content="下载成功后，将自动启动云·星穹铁道",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -469,7 +553,7 @@ class MainWindow(MSFluentWindow):
             )
         elif cfg.cloud_game_enable:
             InfoBar.warning(
-                title=self.tr('正在启动游戏(❁´◡`❁)'),
+                title='正在启动游戏(❁´◡`❁)',
                 content="",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -477,6 +561,11 @@ class MainWindow(MSFluentWindow):
                 duration=5000,
                 parent=self
             )
+        else:
+            from tasks.game.starrailcontroller import StarRailController
+            starrail = StarRailController(cfg=cfg, logger=log)
+            if cfg.auto_battle_detect_enable:
+                starrail.change_auto_battle(True)
 
         self.game_launch_thread = GameLaunchThread(game, cfg)
         self.game_launch_thread.finished_signal.connect(self.on_game_launched)
@@ -485,7 +574,7 @@ class MainWindow(MSFluentWindow):
     def on_game_launched(self, result):
         if result == GameStartStatus.SUCCESS:
             InfoBar.success(
-                title=self.tr('启动成功(＾∀＾●)'),
+                title='启动成功(＾∀＾●)',
                 content="",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -495,7 +584,7 @@ class MainWindow(MSFluentWindow):
             )
         elif result == GameStartStatus.BROWSER_DOWNLOAD_FAIL:
             InfoBar.warning(
-                title=self.tr('浏览器或驱动下载失败 (╥╯﹏╰╥)'),
+                title='浏览器或驱动下载失败 (╥╯﹏╰╥)',
                 content="请检查网络连接是否正常",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -505,7 +594,7 @@ class MainWindow(MSFluentWindow):
             )
         elif result == GameStartStatus.BROWSER_LAUNCH_FAIL:
             InfoBar.warning(
-                title=self.tr('云游戏启动失败(╥╯﹏╰╥)'),
+                title='云游戏启动失败(╥╯﹏╰╥)',
                 content="请检查所选浏览器是否存在，网络连接是否正常",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -515,7 +604,7 @@ class MainWindow(MSFluentWindow):
             )
         elif result == GameStartStatus.LOCAL_LAUNCH_FAIL:
             InfoBar.warning(
-                title=self.tr('游戏路径配置错误(╥╯﹏╰╥)'),
+                title='游戏路径配置错误(╥╯﹏╰╥)',
                 content="请在“设置”-->“程序”中配置",
                 orient=Qt.Horizontal,
                 isClosable=True,
@@ -525,7 +614,7 @@ class MainWindow(MSFluentWindow):
             )
         else:
             InfoBar.warning(
-                title=self.tr('启动失败'),
+                title='启动失败',
                 content=str(self.game_launch_thread.error_msg),
                 orient=Qt.Horizontal,
                 isClosable=True,

@@ -1,11 +1,12 @@
 from qfluentwidgets import (ComboBox, SettingCard, FluentIconBase)
 from typing import Union
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QPushButton
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QPushButton
 
 from module.config import cfg
 import os
+import sys
 from ..tools.check_update import checkUpdate
 
 
@@ -16,7 +17,7 @@ class ComboBoxSettingCard2(SettingCard):
         super().__init__(icon, title, content, parent)
         self.configname = configname
         self.comboBox = ComboBox(self)
-        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignRight)
+        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
         for key, value in texts.items():
@@ -38,7 +39,7 @@ class ComboBoxSettingCardUpdateSource(SettingCard):
         self.configname = configname
         self.update_callback = update_callback
         self.comboBox = ComboBox(self)
-        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignRight)
+        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
         for key, value in texts.items():
@@ -62,12 +63,12 @@ class ComboBoxSettingCardLog(SettingCard):
 
         self.button = QPushButton("打开日志文件夹", self)
         self.button.setObjectName('primaryButton')
-        self.hBoxLayout.addWidget(self.button, 0, Qt.AlignRight)
+        self.hBoxLayout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(10)
         self.button.clicked.connect(self._onClicked)
 
         self.comboBox = ComboBox(self)
-        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignRight)
+        self.hBoxLayout.addWidget(self.comboBox, 0, Qt.AlignmentFlag.AlignRight)
         self.hBoxLayout.addSpacing(16)
 
         for key, value in texts.items():
@@ -81,4 +82,9 @@ class ComboBoxSettingCardLog(SettingCard):
         cfg.set_value(self.configname, self.comboBox.itemData(index))
 
     def _onClicked(self):
-        os.startfile(os.path.abspath("./logs"))
+        if sys.platform == 'win32':
+            os.startfile(os.path.abspath("./logs"))
+        elif sys.platform == 'darwin':
+            os.system(f'open "{os.path.abspath("./logs")}"')
+        else:
+            os.system(f'xdg-open "{os.path.abspath("./logs")}"')

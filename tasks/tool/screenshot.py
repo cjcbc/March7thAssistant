@@ -1,11 +1,11 @@
 from module.ocr import ocr
-from PyQt5.QtWidgets import QMainWindow, QLabel, QPushButton, QHBoxLayout, QWidget, QMessageBox, QScrollArea, QApplication
-from PyQt5.QtCore import Qt, QRect, QPoint, QTimer
-from PyQt5.QtGui import QPixmap, QPainter, QPen, QImage, QColor
+from PySide6.QtWidgets import QMainWindow, QLabel, QPushButton, QHBoxLayout, QWidget, QMessageBox, QScrollArea, QApplication, QStyle
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QPixmap, QPainter, QPen, QImage, QColor
 from PIL import Image
 import pyperclip
-import pyautogui
 import os
+import sys
 import atexit
 
 
@@ -18,9 +18,7 @@ class ScreenshotApp(QMainWindow):
         """
         try:
             from module.logger import log
-            log.info("ScreenshotApp.__init__ 开始")
             super().__init__()
-            log.debug("QMainWindow 初始化完成")
             self.screenshot = screenshot
             log.debug(f"截图尺寸: {screenshot.size}")
             atexit.register(ocr.exit_ocr)
@@ -34,9 +32,7 @@ class ScreenshotApp(QMainWindow):
             self.is_drawing = False
             self.need_maximize = False  # 是否需要最大化窗口
 
-            log.debug("开始设置 UI...")
             self.setup_ui()
-            log.info("ScreenshotApp.__init__ 完成")
         except Exception as e:
             from module.logger import log
             log.error(f"ScreenshotApp.__init__ 发生异常: {e}")
@@ -50,11 +46,8 @@ class ScreenshotApp(QMainWindow):
         """
         try:
             from module.logger import log
-            log.info("setup_ui 开始")
             self.setWindowTitle("游戏截图")
-            log.debug("设置窗口标题完成")
-            self.setWindowIcon(self.style().standardIcon(self.style().SP_DesktopIcon))
-            log.debug("设置窗口图标完成")
+            self.setWindowIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_DesktopIcon))
 
             # 获取屏幕的 DPI 缩放因子
             screen = QApplication.primaryScreen()
@@ -64,9 +57,8 @@ class ScreenshotApp(QMainWindow):
             # 转换PIL Image到QPixmap
             log.debug("开始转换 PIL Image 到 QPixmap...")
             img_data = self.screenshot.tobytes("raw", "RGB")
-            log.debug(f"图像数据长度: {len(img_data)}")
             qimage = QImage(img_data, self.screenshot.width, self.screenshot.height,
-                            self.screenshot.width * 3, QImage.Format_RGB888)
+                            self.screenshot.width * 3, QImage.Format.Format_RGB888)
             log.debug(f"QImage 创建成功，尺寸: {qimage.width()}x{qimage.height()}")
 
             # 计算逻辑尺寸（缩小后在高DPI下显示为原始大小）
@@ -78,7 +70,7 @@ class ScreenshotApp(QMainWindow):
             original_pixmap = QPixmap.fromImage(qimage)
             self.pixmap = original_pixmap.scaled(
                 self.logical_width, self.logical_height,
-                Qt.KeepAspectRatio, Qt.SmoothTransformation
+                Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
             )
             log.debug(f"QPixmap 缩放后尺寸: {self.pixmap.width()}x{self.pixmap.height()}")
         except Exception as e:
@@ -90,26 +82,22 @@ class ScreenshotApp(QMainWindow):
 
         # 创建中心部件和布局
         try:
-            log.debug("创建中心部件和布局...")
             central_widget = QWidget()
             self.setCentralWidget(central_widget)
 
             # 创建垂直布局
-            from PyQt5.QtWidgets import QVBoxLayout
+            from PySide6.QtWidgets import QVBoxLayout
             main_layout = QVBoxLayout(central_widget)
             main_layout.setContentsMargins(0, 0, 0, 0)
             main_layout.setSpacing(0)
-            log.debug("布局创建完成")
 
             # 创建滚动区域
-            log.debug("创建滚动区域...")
             scroll_area = QScrollArea()
             scroll_area.setWidgetResizable(False)  # 不自动调整大小
-            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
             # 创建画布标签
-            log.debug("创建画布标签...")
             self.canvas_label = QLabel()
             self.canvas_label.setPixmap(self.pixmap)
             self.canvas_label.setScaledContents(False)  # 不缩放内容
@@ -121,10 +109,8 @@ class ScreenshotApp(QMainWindow):
             # 将标签放入滚动区域
             scroll_area.setWidget(self.canvas_label)
             main_layout.addWidget(scroll_area)
-            log.debug("画布标签创建完成")
 
             # 创建按钮布局
-            log.debug("创建按钮...")
             button_layout = QHBoxLayout()
             button_layout.setContentsMargins(5, 5, 5, 5)
             button_layout.setSpacing(5)
@@ -145,13 +131,11 @@ class ScreenshotApp(QMainWindow):
 
             button_layout.addStretch()
             main_layout.addLayout(button_layout)
-            log.debug("按钮创建完成")
 
             # 按钮区域高度
             button_area_height = 40
 
             # 设置窗口大小
-            log.debug("设置窗口大小和位置...")
 
             # 获取可用屏幕区域（排除任务栏等）
             screen = QApplication.primaryScreen()
@@ -181,16 +165,22 @@ class ScreenshotApp(QMainWindow):
                 self.setGeometry(pos_x, pos_y, window_width, window_height)
             else:
                 # 截图太大，使用最大化或设置为可用区域大小
-                log.info("截图太大，将窗口设置为最大化")
+                log.debug("截图太大，将窗口设置为最大化")
                 self.setGeometry(100, 100, self.logical_width, self.logical_height + button_area_height)
                 self.need_maximize = True  # 标记需要最大化，在外部调用
 
             # 设置窗口置顶标志（不在这里显示窗口）
             log.debug("设置窗口置顶标志...")
-            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            # 修复关闭窗口按钮无法点击的问题
+            self.setWindowFlags(
+                Qt.WindowType.Window |
+                Qt.WindowType.WindowCloseButtonHint |
+                Qt.WindowType.WindowMinimizeButtonHint |
+                Qt.WindowType.WindowMaximizeButtonHint |
+                Qt.WindowType.WindowStaysOnTopHint
+            )
             # 使用定时器来移除置顶
             QTimer.singleShot(100, self.remove_topmost)
-            log.info("setup_ui 完成")
         except Exception as e:
             log.error(f"setup_ui 创建UI时发生异常: {e}")
             import traceback
@@ -199,7 +189,13 @@ class ScreenshotApp(QMainWindow):
 
     def remove_topmost(self):
         """取消保持最前面状态"""
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+        # 修复关闭窗口按钮无法点击的问题
+        self.setWindowFlags(
+            Qt.WindowType.Window |
+            Qt.WindowType.WindowCloseButtonHint |
+            Qt.WindowType.WindowMinimizeButtonHint |
+            Qt.WindowType.WindowMaximizeButtonHint
+        )
         self.show()
 
     def closeEvent(self, event):
@@ -216,7 +212,7 @@ class ScreenshotApp(QMainWindow):
         """
         处理鼠标按下事件，记录开始选择的坐标。
         """
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.start_x = event.x()
             self.start_y = event.y()
             self.current_x = event.x()
@@ -236,7 +232,7 @@ class ScreenshotApp(QMainWindow):
         """
         处理鼠标释放事件。
         """
-        if event.button() == Qt.LeftButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self.is_drawing = False
             self.current_x = event.x()
             self.current_y = event.y()
@@ -327,7 +323,7 @@ class ScreenshotApp(QMainWindow):
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_path = os.path.join(os.path.abspath(folder_path), f"screenshot_{timestamp}.png")
         self.screenshot.save(screenshot_path)
-        os.startfile(os.path.dirname(screenshot_path))
+        self._start_file(os.path.dirname(screenshot_path))
 
     def save_selection_screenshot(self):
         """
@@ -345,7 +341,7 @@ class ScreenshotApp(QMainWindow):
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             screenshot_path = os.path.join(os.path.abspath(folder_path), f"selection_{timestamp}.png")
             cropped_image.save(screenshot_path)
-            os.startfile(os.path.dirname(screenshot_path))
+            self._start_file(os.path.dirname(screenshot_path))
         else:
             QMessageBox.information(self, "保存选区截图", "还没有选择区域呢")
 
@@ -368,17 +364,33 @@ class ScreenshotApp(QMainWindow):
         """
         对用户选择的截图区域进行OCR识别，并显示识别结果。
         """
+        import time
         selection_info = self.get_selection_info()
         if selection_info:
             x, y, width, height = selection_info
             cropped_image = self.screenshot.crop((x, y, x + width, y + height))  # 裁剪选中区域
+            start_time = time.monotonic()
             result = ocr.recognize_multi_lines(cropped_image)  # 进行OCR识别
-            if result:
-                # 如果识别出结果，处理并显示结果
-                text = self.format_ocr_result(result)  # 格式化OCR识别的结果
-                pyperclip.copy(text)  # 将结果复制到剪贴板
-                QMessageBox.information(self, "OCR识别结果", f"{text}\n\n复制到剪贴板成功")
-            else:
-                QMessageBox.information(self, "OCR识别结果", "没有识别出任何内容")
+            end_time = time.monotonic()
         else:
-            QMessageBox.information(self, "OCR识别结果", "还没有选择区域呢")
+            # 没有选择区域，则对整个截图进行OCR识别
+            start_time = time.monotonic()
+            result = ocr.recognize_multi_lines(self.screenshot)  # 进行OCR识别
+            end_time = time.monotonic()
+        if result:
+            # 如果识别出结果，处理并显示结果
+            text = self.format_ocr_result(result)  # 格式化OCR识别的结果
+            pyperclip.copy(text)  # 将结果复制到剪贴板
+            QMessageBox.information(self, "OCR识别结果", f"{text}\n\n复制到剪贴板成功\n识别耗时: {end_time - start_time:.2f} 秒")
+        else:
+            QMessageBox.information(self, "OCR识别结果", "没有识别出任何内容")
+        # else:
+        #     QMessageBox.information(self, "OCR识别结果", "还没有选择区域呢")
+
+    def _start_file(self, path):
+        if sys.platform == 'win32':
+            os.startfile(path)
+        elif sys.platform == 'darwin':
+            os.system(f'open "{path}"')
+        else:
+            os.system(f'xdg-open "{path}"')

@@ -1,8 +1,7 @@
 # coding:utf-8
 from typing import Union, List
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QIcon
 from qfluentwidgets import ExpandSettingCard, FluentIconBase, SwitchButton, IndicatorPosition, SettingCard, ComboBox, PrimaryPushButton
 
 
@@ -13,8 +12,8 @@ class ExpandableSwitchSettingCard(ExpandSettingCard):
     用户点击卡片可以展开/收起子选项，右侧的开关控制功能启用/禁用。
     """
 
-    switchChanged = pyqtSignal(bool)
-    expandStateChanged = pyqtSignal(bool)  # 新增信号：展开状态改变时发出，参数为是否展开
+    switchChanged = Signal(bool)
+    expandStateChanged = Signal(bool)  # 新增信号：展开状态改变时发出，参数为是否展开
 
     def __init__(self, configname: str, icon: Union[str, QIcon, FluentIconBase],
                  title: str, content: str = None, parent=None):
@@ -30,7 +29,7 @@ class ExpandableSwitchSettingCard(ExpandSettingCard):
         self.configname = configname
 
         # Switch button
-        self.switchButton = SwitchButton(self.tr('关'), self, IndicatorPosition.RIGHT)
+        self.switchButton = SwitchButton('关', self, IndicatorPosition.RIGHT)
 
         # Add switch button to card layout using addWidget method
         self.card.addWidget(self.switchButton)
@@ -54,7 +53,7 @@ class ExpandableSwitchSettingCard(ExpandSettingCard):
     def setValue(self, isChecked: bool):
         """Set switch button state"""
         self.switchButton.setChecked(isChecked)
-        self.switchButton.setText(self.tr('开') if isChecked else self.tr('关'))
+        self.switchButton.setText('开' if isChecked else '关')
 
     def getSwitchState(self) -> bool:
         """Get current switch state"""
@@ -101,8 +100,8 @@ class ExpandableSwitchSettingCard(ExpandSettingCard):
 class ExpandablePushSettingCard(ExpandSettingCard):
     """可展开的按钮设置卡片 - 用于测试通知等操作"""
 
-    expandStateChanged = pyqtSignal(bool)
-    clicked = pyqtSignal()
+    expandStateChanged = Signal(bool)
+    clicked = Signal()
 
     def __init__(self, title: str, icon: Union[str, QIcon, FluentIconBase],
                  content: str = None, button_text: str = "Click", parent=None):
@@ -190,8 +189,8 @@ class ExpandablePushSettingCard(ExpandSettingCard):
 class ExpandableComboBoxSettingCard(ExpandSettingCard):
     """可展开的下拉菜单设置卡片 - 通用实现"""
 
-    expandStateChanged = pyqtSignal(bool)
-    currentIndexChanged = pyqtSignal(int)
+    expandStateChanged = Signal(bool)
+    currentIndexChanged = Signal(int)
 
     def __init__(self, configname: str, icon: Union[str, QIcon, FluentIconBase],
                  title: str, content: str = None, texts: dict = None, parent=None):
@@ -297,7 +296,7 @@ class ExpandableComboBoxSettingCard(ExpandSettingCard):
 class ExpandableComboBoxSettingCardUpdateSource(ExpandSettingCard):
     """可展开的下拉菜单设置卡片 - 用于更新源选择"""
 
-    expandStateChanged = pyqtSignal(bool)
+    expandStateChanged = Signal(bool)
 
     def __init__(self, configname: str, icon: Union[str, QIcon, FluentIconBase],
                  title: str, update_callback, content: str = None, texts: dict = None, parent=None):
@@ -381,8 +380,8 @@ class ExpandableComboBoxSettingCardUpdateSource(ExpandSettingCard):
 class ExpandableComboBoxSettingCard1(ExpandSettingCard):
     """可展开的下拉菜单设置卡片 - 用于 ComboBoxSettingCard1 类型"""
 
-    expandStateChanged = pyqtSignal(bool)
-    currentIndexChanged = pyqtSignal(int)
+    expandStateChanged = Signal(bool)
+    currentIndexChanged = Signal(int)
 
     def __init__(self, configname: str, icon: Union[str, QIcon, FluentIconBase],
                  title: str, content: str = None, texts: list = None, parent=None):
@@ -472,9 +471,9 @@ class ExpandableComboBoxSettingCard1(ExpandSettingCard):
 class ExpandableSwitchSettingCardEchoofwar(ExpandSettingCard):
     """可展开的历战余响开关设置卡片，带周几开始执行的下拉框"""
 
-    switchChanged = pyqtSignal(bool)
-    expandStateChanged = pyqtSignal(bool)
-    currentIndexChanged = pyqtSignal(int)
+    switchChanged = Signal(bool)
+    expandStateChanged = Signal(bool)
+    currentIndexChanged = Signal(int)
 
     def __init__(self, configname: str, icon: Union[str, QIcon, FluentIconBase],
                  title: str, content: str = None, parent=None):
@@ -504,7 +503,7 @@ class ExpandableSwitchSettingCardEchoofwar(ExpandSettingCard):
         self.comboBox.currentIndexChanged.connect(self._onCurrentIndexChanged)
 
         # 开关按钮
-        self.switchButton = SwitchButton(self.tr('关'), self, IndicatorPosition.RIGHT)
+        self.switchButton = SwitchButton('关', self, IndicatorPosition.RIGHT)
         self.card.addWidget(self.switchButton)
 
         self.setValue(self.cfg.get_value(self.configname))
@@ -519,7 +518,7 @@ class ExpandableSwitchSettingCardEchoofwar(ExpandSettingCard):
     def setValue(self, isChecked: bool):
         """设置开关状态"""
         self.switchButton.setChecked(isChecked)
-        self.switchButton.setText(self.tr('开') if isChecked else self.tr('关'))
+        self.switchButton.setText('开' if isChecked else '关')
 
     def _onCurrentIndexChanged(self, index: int):
         self.cfg.set_value("echo_of_war_start_day_of_week", self.comboBox.itemData(index))

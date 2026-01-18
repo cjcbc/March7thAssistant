@@ -1,12 +1,14 @@
+import sys
 from module.config import cfg
 from module.logger import log
-from module.notification.matrix import MatrixNotifier
 from module.notification.notification import Notification, NotificationLevel
 # 导入所有通知器类型
 from module.notification.onepush import OnepushNotifier
 from module.notification.serverchan3 import ServerChanNotifier
-from module.notification.winotify import WinotifyNotifier
+if sys.platform == 'win32':
+    from module.notification.winotify import WinotifyNotifier
 from module.notification.telegram import TelegramNotifier
+from module.notification.matrix import MatrixNotifier
 from module.notification.onebot import OnebotNotifier
 from module.notification.smtp import SMTPNotifier
 from module.notification.gocqhttp import GocqhttpNotifier
@@ -16,12 +18,12 @@ from module.notification.lark import LarkNotifier
 from module.notification.wechatworkbot import WeChatWorkBotNotifier
 from module.notification.kook import KOOKNotifier
 from module.notification.webhook import WebhookNotifier
+from module.notification.meow import MeoWNotifier
 
 
 class NotifierFactory:
     # 创建通知器类型到其类的映射字典
     notifier_classes = {
-        "winotify": WinotifyNotifier,
         "telegram": TelegramNotifier,
         "matrix": MatrixNotifier,
         "onebot": OnebotNotifier,
@@ -34,7 +36,10 @@ class NotifierFactory:
         "serverchan3": ServerChanNotifier,
         "kook": KOOKNotifier,
         "webhook": WebhookNotifier,
+        "meow": MeoWNotifier,
     }
+    if sys.platform == 'win32':
+        notifier_classes["winotify"] = WinotifyNotifier
 
     @staticmethod
     def create_notifier(notifier_name, params, logger):
@@ -82,6 +87,8 @@ def init_notifiers():
                 params = {param_key[len("notify_" + notifier_name + "_"):]: param_value
                           for param_key, param_value in cfg.config.items()
                           if param_key.startswith(f"notify_{notifier_name}_") and param_key != f"notify_{notifier_name}_enable" and param_value != ""}
+                if sys.platform != 'win32' and notifier_name == 'winotify':
+                    continue  # 跳过 Windows 专用的通知器
                 notifier = NotifierFactory.create_notifier(notifier_name, params, log)
                 notif.set_notifier(notifier_name, notifier)
     except Exception:

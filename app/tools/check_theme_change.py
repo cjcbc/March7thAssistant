@@ -1,6 +1,7 @@
 # check_theme_change.py
 from qfluentwidgets import setTheme, Theme, qconfig
-from PyQt5.QtCore import QThread, pyqtSignal
+from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QTimer
 import darkdetect
 
 
@@ -10,8 +11,8 @@ class SystemThemeListener(QThread):
     darkdetect.listener() 是阻塞调用，会一直运行监听系统主题变化，
     需要在单独的线程中运行。
     """
-    systemThemeChanged = pyqtSignal(Theme)  # 系统主题变化信号
-    initCompleted = pyqtSignal(bool)  # 初始化完成信号，参数表示是否支持
+    systemThemeChanged = Signal(Theme)  # 系统主题变化信号
+    initCompleted = Signal(bool)  # 初始化完成信号，参数表示是否支持
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -63,7 +64,15 @@ def checkThemeChange(self):
     在 MainWindow 中调用，self 是 MainWindow 实例
     """
     def handle_theme_change(theme):
-        setTheme(theme, lazy=True)
+        """根据程序是否最小化到托盘决定 lazy 参数：
+        - 如果窗口不可见且托盘图标可见（认为已最小化到托盘），则立即应用主题（lazy=False）
+        - 否则使用默认延迟应用（lazy=True）
+        """
+        is_minimized_to_tray = hasattr(self, 'tray_icon') and (not self.isVisible()) and self.tray_icon.isVisible()
+        setTheme(theme, lazy=not is_minimized_to_tray)
+        # 从 Light 主题切换至 Dark 主题时窗口背景无法正常切换
+        # 解决方法 https://github.com/zhiyiYo/PyQt-Frameless-Window/issues/158
+        QTimer.singleShot(500, lambda: self.setMicaEffectEnabled(True))
 
     def on_init_completed(is_supported):
         if is_supported:
