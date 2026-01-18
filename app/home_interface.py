@@ -68,7 +68,7 @@ class BannerWidget(QWidget):
 
             "https://github.com/moesnow/March7thAssistant",
         )
-        self.linkCardView.setHidden(True)
+        #self.linkCardView.setHidden(True)
         # self.vBoxLayout.setContentsMargins(0, 0, 0, 36)
         # self.vBoxLayout.setSpacing(40)
 
