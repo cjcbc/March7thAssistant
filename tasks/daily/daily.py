@@ -136,6 +136,13 @@ class Daily:
         else:
             log.info("末日幻影尚未刷新")
 
+        # 3星光锥自动叠加（需开启资产管理和对应功能）
+        if cfg.asset_manager_enable:
+            if cfg.asset_lc3_star_superimpose_enable:
+                Synthesis.lc3star_superimpose()
+            else:
+                log.info("3星光锥自动合成未开启")
+
     @staticmethod
     def lookup():
         log.hr("开始查询日常任务完成情况", 1)
@@ -168,8 +175,8 @@ class Daily:
                 "完成1次「侵蚀隧洞」": (lambda: False, 100),
                 "完成1次「历战余响」": (lambda: False, 100),
                 "将任意角色等级提升1次": (lambda: False, 100),
-                "将任意遗器等级提升1次": (lambda: False, 100),
-                "将任意光锥等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
+                "将任意遗器等级提升1次": (lambda: Synthesis.upgrade_relic(), 100),
+                "将任意光锥等级提升1次": (lambda: False, 100),
                 "分解任意1件遗器": (lambda: False, 100),
                 "完成1个日常任务": (lambda: False, 100),
                 "累计消灭20个敌人": (lambda: challenge.start_memory_one(2), 100),

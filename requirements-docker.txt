@@ -10,7 +10,6 @@ imageio==2.36.1
 Pillow==11.0.0
 Numpy==2.3.0
 opencv-python==4.10.0.84
-pyzbar==0.1.9
 onepush==1.4.0
 pyperclip==1.9.0
 pysocks==1.7.1
@@ -21,5 +20,6 @@ python-socks[asyncio]==2.6.1
 asyncio==3.4.3
 nio==3.4.2
 selenium==4.38.0
+opencc==1.2.0
 rapidocr==3.5.0
 onnxruntime==1.23.2

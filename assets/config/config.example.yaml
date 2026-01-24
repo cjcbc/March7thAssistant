@@ -1,6 +1,9 @@
 # 语言设置
 locales: zh_CN
 
+# UI 인터페이스 언어 설정 / UI 界面语言设置
+ui_language: auto # 可选值 / 가능한 값: auto (自动判断), zh_CN (简体中文),  zh_TW (繁體中文), ko_KR (한국어) , en_US (English)
+
 # 日志设置
 log_level: INFO # 日志等级，可选值：INFO, DEBUG。INFO 仅记录重要信息，DEBUG 记录详细调试信息。
 log_retention_days: 30 # 日志保留天数，超过此天数的日志文件将被自动删除。
@@ -167,6 +170,10 @@ activity_gardenofplenty_enable: false # 是否启用花藏繁生活动。true �
 activity_gardenofplenty_instance_type: 拟造花萼（金） # 花藏繁生副本类型。
 activity_realmofthestrange_enable: false # 是否启用异器盈界活动。true 开启，false 关闭。
 activity_planarfissure_enable: false # 是否启用位面分裂活动。true 开启，false 关闭。
+
+# 资产设置
+asset_manager_enable: false # 是否启用资产管理功能。true 开启，false 关闭。
+asset_lc3_star_superimpose_enable: false # 是否启用「三星光锥自动叠加」功能。true 开启，false 关闭。
 
 # 货币战争配置
 currencywars_enable: false # 是否启用「货币战争」积分奖励。true 开启，false 关闭。
