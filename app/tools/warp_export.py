@@ -190,7 +190,7 @@ class WarpExport:
                     rank_5.append([name, grand_total])
                     grand_total = 0
 
-            content += f"一共 {self.__set_color(total, 'DeepSkyBlue')} {tr('抽')} {tr('已累计')} {self.__set_color(grand_total, 'LimeGreen')} {tr('抽未出5星')}\n\n"
+            content += f"{tr('一共')} {self.__set_color(total, 'DeepSkyBlue')} {tr('抽')} {tr('已累计')} {self.__set_color(grand_total, 'LimeGreen')} {tr('抽未出5星')}\n\n"
             for star, count in rank_type.items():
                 percentage = count / total * 100
                 color = 'Goldenrod' if star == '5' else 'darkorchid' if star == '4' else 'DodgerBlue'
@@ -321,7 +321,7 @@ class WarpExport:
                         self.show_info_message(response.json()['message'], tr("请求出错"))
                         return None
                 else:
-                    self.show_info_message(tr('正在获取{self.gacha_type[gacha_type]}第{page}页').format(self=self, gacha_type=gacha_type, page=page))
+                    self.show_info_message(tr('正在获取{gacha_name}第{page}页').format(gacha_name=self.gacha_type[gacha_type], page=page))
                     return response.json()['data']
             except Exception:
                 self.show_info_message(tr('等待5秒后重试，剩余重试次数：') + str(max_retry - i) + '', tr("请求出错"))
