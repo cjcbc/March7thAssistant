@@ -143,6 +143,10 @@ def start_game():
 
             if not wait_until(lambda: check_and_click_enter(), cfg.start_game_timeout * 60):
                 raise TimeoutError("查找并点击进入按钮超时")
+
+            # 偶现加载慢时分辨率修改不成功，进入游戏前增加一次分辨率检查
+            starrail.check_resolution(1920, 1080)
+
             time.sleep(10)
             # 修复B服问题 https://github.com/moesnow/March7thAssistant/discussions/321#discussioncomment-10565807
             auto.press_mouse()
@@ -269,7 +273,13 @@ def after_finish_is_loop():
     log.hr("完成", 2)
     # 等待状态退出OCR避免内存占用
     ocr.exit_ocr()
-    time.sleep(wait_time)
+    # 使用wall clock轮询等待，避免系统休眠后time.sleep剩余时间不准确的问题
+    target_time = time.time() + wait_time
+    while True:
+        remaining = target_time - time.time()
+        if remaining <= 0:
+            break
+        time.sleep(min(60, remaining))
 
     # 启动前重新加载配置 #262
     cfg._load_config()
