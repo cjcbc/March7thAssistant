@@ -18,6 +18,9 @@ import numpy as np
 import os
 import sys
 
+import yaml
+from pathlib import Path
+from datetime import datetime
 
 class BannerWidget(QWidget):
     def __init__(self, parent=None):
@@ -70,7 +73,7 @@ class BannerWidget(QWidget):
 
             "https://github.com/moesnow/March7thAssistant",
         )
-        self.linkCardView.setHidden(True)
+        #self.linkCardView.setHidden(True)
         # self.vBoxLayout.setContentsMargins(0, 0, 0, 36)
         # self.vBoxLayout.setSpacing(40)
 
@@ -120,6 +123,25 @@ class BannerWidget(QWidget):
         self.vBoxLayout.addWidget(self.galleryLabel)
         self.vBoxLayout.addStretch(1)  # 添加弹性空间，将 linkCardView 推到底部
         self.vBoxLayout.addWidget(self.linkCardView, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+
+        def load_last_run_time():
+            config_path = Path("config.yaml")
+            if not config_path.exists():
+                return "配置文件不存在！"
+            else:
+                with open(config_path, "r", encoding="utf-8") as f:
+                    config = yaml.safe_load(f)
+            timestamp = config.get("last_run_timestamp")
+            if timestamp:
+                return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+            return "从未运行"
+
+        self.linkCardView.addCard(
+            FluentIcon.DATE_TIME,
+            self.tr("上次运行时间："),
+            load_last_run_time(),
+            ""
+        )
 
     def paintEvent(self, e):
         super().paintEvent(e)

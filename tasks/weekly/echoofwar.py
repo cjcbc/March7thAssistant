@@ -6,6 +6,8 @@ from tasks.power.power import Power
 from tasks.power.instance import Instance
 from tasks.daily.buildtarget import BuildTarget
 import time
+import json
+import random
 
 
 class Echoofwar:
@@ -40,6 +42,14 @@ class Echoofwar:
                                     instance_name = target[1]
                                 else:
                                     instance_name = cfg.instance_names["历战余响"]
+                                if instance_name == "随机":
+                                    with open("assets/config/instance_names.json", "r", encoding="utf-8") as f:
+                                        data = json.load(f)
+                                        category = data["历战余响"]
+                                        choices = [key for key in category.keys() if key not in ("无","随机")]
+                                        selected = random.choice(choices)
+                                        log.info(f"随机选择历战余响：{selected}")
+                                        return Instance.run("历战余响", selected, 30, 1)
                                 return Instance.run("历战余响", instance_name, 30, min(reward_count, max_count))
             return False
         except Exception as e:
