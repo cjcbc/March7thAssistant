@@ -36,7 +36,7 @@ def wait_until(condition, timeout, period=1):
 def start():
     log.hr("开始运行", 0)
     start_game()
-    log.hr("完成", 2)
+    log.hr("游戏启动完成", 2)
 
 
 def start_game():
