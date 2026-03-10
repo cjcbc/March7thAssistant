@@ -10,7 +10,7 @@ from .card.comboboxsettingcard1 import ComboBoxSettingCard1
 from .card.comboboxsettingcard2 import ComboBoxSettingCard2, ComboBoxSettingCardUpdateSource, ComboBoxSettingCardLog, ComboBoxSettingCardLanguage
 from .card.switchsettingcard1 import SwitchSettingCard1, SwitchSettingCardNotify, StartMarch7thAssistantSwitchSettingCard, SwitchSettingCardTeam, SwitchSettingCardImmersifier, SwitchSettingCardGardenofplenty, SwitchSettingCardEchoofwar, SwitchSettingCardHotkey, SwitchSettingCardCloudGameStatus
 from .card.rangesettingcard1 import RangeSettingCard1
-from .card.pushsettingcard1 import PushSettingCardInstance, PushSettingCardInstanceChallengeCount, PushSettingCardNotifyTemplate, PushSettingCardMirrorchyan, PushSettingCardEval, PushSettingCardDate, PushSettingCardKey, PushSettingCardTeam, PushSettingCardFriends, PushSettingCardTeamWithSwap, PushSettingCardPowerPlan
+from .card.pushsettingcard1 import PushSettingCardInstance, PushSettingCardInstanceChallengeCount, PushSettingCardNotifyTemplate, PushSettingCardMirrorchyan, PushSettingCardEval, PushSettingCardDate, PushSettingCardKey, PushSettingCardTeam, PushSettingCardFriends, PushSettingCardTeamWithSwap, PushSettingCardPowerPlan, InstanceTeamSettingCard
 from .card.timepickersettingcard1 import TimePickerSettingCard1
 from .card.expandable_switch_setting_card import ExpandableSwitchSettingCard, ExpandableComboBoxSettingCardUpdateSource, ExpandablePushSettingCard, ExpandableComboBoxSettingCard, ExpandableComboBoxSettingCardInstanceType, ExpandableSwitchSettingCardEchoofwar
 from module.config import cfg
@@ -119,12 +119,10 @@ class SettingInterface(ScrollArea):
         #     "每轮拟造花萼挑战次数",
         #     '',
         # )
-        self.instanceTeamEnableCard = SwitchSettingCardTeam(
+        self.instanceTeamEnableCard = InstanceTeamSettingCard(
             FIF.EDIT,
             tr("自动切换队伍"),
-            None,
-            "instance_team_enable",
-            "instance_team_number"
+            None
         )
         self.tpBeforeInstanceEnableCard = SwitchSettingCard1(
             FIF.LEAF,
@@ -451,11 +449,11 @@ class SettingInterface(ScrollArea):
             '',
             texts={tr('常规演算'): 'normal', tr('周期演算'): 'cycle'}
         )
-        self.universeDisableGpuCard = SwitchSettingCard1(
+        self.universeEnableGpuCard = SwitchSettingCard1(
             FIF.COMMAND_PROMPT,
-            tr('禁用GPU加速'),
-            tr('差分宇宙无法正常运行时，可尝试打开此选项'),
-            "universe_disable_gpu"
+            tr('启用差分宇宙 GPU 加速'),
+            tr('开启后可能提升运行速度，若出现错误、异常或不稳定，请关闭此选项'),
+            "universe_enable_gpu"
         )
         self.universeTimeoutCard = RangeSettingCard1(
             "universe_timeout",
@@ -960,11 +958,11 @@ class SettingInterface(ScrollArea):
             tr("通过快捷方式、官方启动器、运行中的游戏进程等方式尝试自动配置游戏路径（支持国服和国际服）"),
             "auto_set_game_path_enable"
         )
-        self.allScreensCard = SwitchSettingCard1(
-            FIF.ZOOM,
-            tr('在多显示器上进行截屏'),
-            tr("默认开启，如果正在使用多显示器且无法正常截屏请关闭此选项重试"),
-            "all_screens"
+        self.useBackgroundScreenshotCard = SwitchSettingCard1(
+            FIF.CAMERA,
+            tr('优先使用后台截图'),
+            tr("默认开启，可以避免悬浮窗等干扰"),
+            "use_background_screenshot"
         )
         if sys.platform == 'win32':
             self.StartMarch7thAssistantCard = StartMarch7thAssistantSwitchSettingCard(
@@ -1145,7 +1143,7 @@ class SettingInterface(ScrollArea):
         ])
         self.UniverseGroup.addSettingCard(self.divergentTeamTypeCard)
         self.UniverseGroup.addSettingCard(self.universeBonusEnableCard)
-        self.UniverseGroup.addSettingCard(self.universeDisableGpuCard)
+        self.UniverseGroup.addSettingCard(self.universeEnableGpuCard)
 
         self.FightGroup.addSettingCard(self.fightEnableCard)
         self.fightEnableCard.addSettingCards([
@@ -1234,7 +1232,7 @@ class SettingInterface(ScrollArea):
         self.MiscGroup.addSettingCard(self.ocrGpuAccelerationCard)
         self.MiscGroup.addSettingCard(self.autoSetResolutionEnableCard)
         self.MiscGroup.addSettingCard(self.autoSetGamePathEnableCard)
-        self.MiscGroup.addSettingCard(self.allScreensCard)
+        self.MiscGroup.addSettingCard(self.useBackgroundScreenshotCard)
         if sys.platform == 'win32':
             self.MiscGroup.addSettingCard(self.StartMarch7thAssistantCard)
         self.MiscGroup.addSettingCard(self.hotkeyCard)
@@ -1257,7 +1255,6 @@ class SettingInterface(ScrollArea):
             self.updateViaLauncherEnableCard.setHidden(True)
             self.autoSetResolutionEnableCard.setHidden(True)
             self.autoSetGamePathEnableCard.setHidden(True)
-            self.allScreensCard.setHidden(True)
             self.cloudGameEnableCard.setDisabled(True)  # 在配置文件中强制启用，禁止用户修改
 
         self.addSubInterface(self.PowerGroup, 'PowerInterface', tr('体力'))
@@ -1367,14 +1364,24 @@ class SettingInterface(ScrollArea):
     #         self.__showRestartTooltip()
 
     def __onGamePathCardClicked(self):
-        game_path, _ = QFileDialog.getOpenFileName(self, tr("选择游戏路径"), "", tr("所有文件 (*)") + ";;All Files (*)")
+        game_path, _ = QFileDialog.getOpenFileName(
+            self,
+            tr("选择游戏路径"),
+            "",
+            tr("脚本或可执行文件 (*.exe *.bat *.cmd *.ps1)")
+        )
         if not game_path or cfg.game_path == game_path:
             return
         cfg.set_value("game_path", game_path)
         self.gamePathCard.setContent(game_path)
 
     def __onLauncherPathCardClicked(self):
-        launcher_path, _ = QFileDialog.getOpenFileName(self, tr("选择米哈游启动器路径"), "", tr("所有文件 (*)") + ";;All Files (*)")
+        launcher_path, _ = QFileDialog.getOpenFileName(
+            self,
+            tr("选择米哈游启动器路径"),
+            "",
+            tr("脚本或可执行文件 (*.exe *.bat *.cmd *.ps1)")
+        )
         if not launcher_path or cfg.launcher_path == launcher_path:
             return
         cfg.set_value("launcher_path", launcher_path)
@@ -1394,7 +1401,12 @@ class SettingInterface(ScrollArea):
     #         parent=self
     #     )
     def __onScriptPathCardClicked(self):
-        script_path, _ = QFileDialog.getOpenFileName(self, tr("脚本或程序路径"), "", tr("脚本或可执行文件 (*.ps1 *.bat *.exe)"))
+        script_path, _ = QFileDialog.getOpenFileName(
+            self,
+            tr("脚本或程序路径"),
+            "",
+            tr("脚本或可执行文件 (*.exe *.bat *.cmd *.ps1)")
+        )
         if not script_path or cfg.script_path == script_path:
             return
         cfg.set_value("script_path", script_path)
