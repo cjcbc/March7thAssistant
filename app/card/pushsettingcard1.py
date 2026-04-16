@@ -35,18 +35,46 @@ class CustomPushSettingCard(SettingCard):
         self.hBoxLayout.addSpacing(16)
 
 
+class DualPushSettingCard(SettingCard):
+    leftClicked = Signal()
+    rightClicked = Signal()
+
+    def __init__(self, left_text, right_text, icon: Union[str, QIcon, FluentIconBase], title, content=None, parent=None):
+        super().__init__(icon, title, content, parent)
+
+        self.leftButton = QPushButton(left_text, self)
+        self.rightButton = QPushButton(right_text, self)
+
+        for button in (self.leftButton, self.rightButton):
+            button.setObjectName('primaryButton')
+
+        self.hBoxLayout.addWidget(self.leftButton, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(10)
+        self.hBoxLayout.addWidget(self.rightButton, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(16)
+
+        self.leftButton.clicked.connect(self.leftClicked.emit)
+        self.rightButton.clicked.connect(self.rightClicked.emit)
+
+
 class PushSettingCardStr(CustomPushSettingCard):
-    def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
+    def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None, empty_content=None):
+        self.empty_content = empty_content
         self.configvalue = str(cfg.get_value(configname))
-        super().__init__(text, icon, title, configname, self.configvalue, parent)
+        super().__init__(text, icon, title, configname, self._display_value(self.configvalue), parent)
         self.button.clicked.connect(self.__onclicked)
+
+    def _display_value(self, value):
+        if value == "" and self.empty_content is not None:
+            return self.empty_content
+        return value
 
     def __onclicked(self):
         message_box = MessageBoxEdit(self.title, self.configvalue, self.window())
         if message_box.exec():
             cfg.set_value(self.configname, message_box.getText())
-            self.contentLabel.setText(message_box.getText())
             self.configvalue = message_box.getText()
+            self.contentLabel.setText(self._display_value(self.configvalue))
 
 
 class PushSettingCardMirrorchyan(SettingCard):
