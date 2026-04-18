@@ -25,6 +25,12 @@
                     "time.sleep(2)",
                     "auto.click_element('./assets/images/share/warp/stellar_warp.png', 'image', 0.9)"
                 ]
+            },
+            {
+                "target_screen": "incoming_message",
+                "actions_list": [
+                    "auto.press_key('p')"
+                ]
             }
         ]
     },
@@ -78,8 +84,7 @@
             {
                 "target_screen": "mail",
                 "actions_list": [
-                    "auto.click_element('./assets/images/share/menu/mail.png', 'image', 0.8, crop=(1823.0 / 1920, 224.0 / 1080, 91.0 / 1920, 92.0 / 1080))",
-                    "auto.click_element('./assets/images/share/menu/mail_reward.png', 'image', 3000000, crop=(1823.0 / 1920, 224.0 / 1080, 91.0 / 1920, 92.0 / 1080))"
+                    "auto.click_element((1846 / 1920, 253 / 1080, 43 / 1920, 37 / 1080), 'crop')"
                 ]
             },
             {
@@ -1079,6 +1084,19 @@
                 "actions_list": [
                     "auto.press_key('esc')",
                     "time.sleep(1)",
+                    "auto.press_key('esc')"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "新消息通知",
+        "id": "incoming_message",
+        "image_path": "./assets/images/screen/incoming_message.png",
+        "actions": [
+            {
+                "target_screen": "main",
+                "actions_list": [
                     "auto.press_key('esc')"
                 ]
             }

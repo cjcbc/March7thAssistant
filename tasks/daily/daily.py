@@ -111,6 +111,7 @@ class Daily:
                     if cfg.universe_category == "divergent":
                         for _ in range(cfg.universe_count):
                             divergent.start()
+                        cfg.save_timestamp("universe_timestamp")
                     else:
                         Universe.start()
                 else:
@@ -123,6 +124,7 @@ class Daily:
                     if cfg.universe_category == "divergent":
                         for _ in range(cfg.universe_count):
                             divergent.start()
+                        cfg.save_timestamp("universe_timestamp")
                     else:
                         Universe.start()
                 else:

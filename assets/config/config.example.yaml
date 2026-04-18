@@ -149,6 +149,7 @@ reward_quest_enable: true # 是否领取每日实训奖励。true 开启，false
 reward_srpass_enable: true # 是否领取无名勋礼奖励。true 开启，false 关闭。
 reward_redemption_code_enable: true # 是否领取兑换码奖励。true 开启，false 关闭。
 reward_achievement_enable: false # 是否领取成就奖励。true 开启，false 关闭。
+reward_message_enable: false # 是否领取短信奖励。true 开启，false 关闭。
 
 # 日常任务设置
 daily_enable: true # 是否启用日常任务。true 开启，false 关闭。
@@ -182,17 +183,35 @@ asset_lc3_star_superimpose_enable: false # 是否启用「三星光锥自动叠�
 # 货币战争配置
 currencywars_enable: false # 是否启用「货币战争」积分奖励。true 开启，false 关闭。
 currencywars_type: overclock # 货币战争模式，可选值："normal"（标准博弈）或 "overclock"（超频博弈）。
+currencywars_rank_difficulty: lowest # 货币战争职级难度，可选值："lowest"（最低职级）或 "highest"（最高职级）。
 currencywars_timestamp: 0 # 上次检测到完成差分宇宙积分奖励的时间戳，用于记录和控制运行频率。
 currencywars_bonus_enable: false # 在领取积分奖励后自动执行位面饰品快速提取消耗深度沉浸器。true 开启，false 关闭。
 currencywars_fast_mode: false # 是否启用货币战争速通模式，仅在首领节点尝试装备武器。true 开启，false 关闭。
+currencywars_strategy: default # 货币战争策略，可选默认(default)或阿格莱雅(aglaea)
+currencywars_remembrance_trailblazer_name: "" # 阿格莱雅策略下“开拓者·记忆”在游戏内的实际显示名字，由玩家自定义；留空则跳过该角色。
+currencywars_strategy_restart_on_special_tags: true # 根据所选策略，遇到特定词条或词条组合时是否接受重开。true 开启，false 关闭。
 
 # 差分宇宙配置
 weekly_divergent_enable: false # 是否启用「差分宇宙」积分奖励。true 开启，false 关闭。
 weekly_divergent_type: cycle # 积分奖励时执行的差分宇宙模式，可选值："normal"（常规演算）或 "cycle"（周期演算）。
-weekly_divergent_level: 5 # 执行差分宇宙时的难度等级，取值范围 1-5，数值越大难度越高。
+weekly_divergent_level: 5 # 执行差分宇宙时的难度等级，取值范围 1-6，数值越大难度越高，其中难度 6 对应常规演算星阶模式。
 weekly_divergent_timestamp: 0 # 上次检测到完成差分宇宙积分奖励的时间戳，用于记录和控制运行频率。
 weekly_divergent_bonus_enable: false # 在领取积分奖励后自动执行饰品提取消耗沉浸器。true 开启，false 关闭。
 weekly_divergent_stable_mode: false # 是否启用差分宇宙稳定模式，运行若出现问题可尝试开启，适配低性能环境，云游戏默认使用此模式。true 开启，false 关闭。
+
+# 差分宇宙站点优先级配置
+divergent_station_priority_enable: false # 是否启用自定义站点优先级。true 开启，false 关闭。关闭时使用默认优先级。
+divergent_station_priority:
+  战斗: 1
+  精英: 1
+  事件: 2
+  奖励: 2
+  异常: 2
+  铸造: 2
+  空白: 3
+  商店: 3
+  财富: 3
+divergent_station_disabled: [] # 禁用的站点列表，在有重抽次数时会尝试重抽避开这些站点
 
 universe_enable: false # 是否启用模拟宇宙功能。true 开启，false 关闭。
 universe_operation_mode: exe # 模拟宇宙运行方式，可选 "源码"（source）或 "集成"（exe）。
@@ -382,8 +401,7 @@ scheduled_tasks: [] # 示例：
 #     enabled: true
 
 use_background_screenshot: true # 是否优先使用后台截图
-
-# 关闭窗口行为设置
+home_cards:
 close_window_action: ask # 关闭窗口时的行为，可选值："ask"（询问）, "minimize"（最小化到托盘）, "close"（关闭程序）
 
 # 窗口记忆设置
@@ -406,6 +424,7 @@ auto_update: false
 
 update_source: GitHub # 更新源，可选值："GitHub"（海外源）, "MirrorChyan"（Mirror 酱）
 mirrorchyan_cdk: "" # MirrorChyan CDK
+update_download_proxy: "" # 更新下载代理，留空则使用系统代理。支持 http://127.0.0.1:7890 和 socks5://127.0.0.1:1080，仅在下载更新文件时生效，且优先于系统代理。
 
 # 消息推送配置
 # 消息推送格式配置
@@ -426,6 +445,7 @@ notify_template:
   SimulatedUniverseNotCompleted: "模拟宇宙未完成"
   FightCompleted: "锄大地已完成"
   FightNotCompleted: "锄大地未完成"
+  RelicBagFull: "遗器背包已满"
 
 # 消息推送总开关
 notification_enable: true # 是否启用消息推送。true 开启，false 关闭。关闭后所有消息推送将被禁用。
