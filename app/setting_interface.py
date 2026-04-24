@@ -412,6 +412,12 @@ class SettingInterface(ScrollArea):
             tr("存在双倍次数时体力优先「饰品提取」"),
             "activity_planarfissure_enable"
         )
+        self.activityJourneyHighlightsNotificationEnableCard = SwitchSettingCard1(
+            FIF.CALENDAR,
+            tr('活动热点通知'),
+            tr("每次运行时发送带有活动热点截图的通知"),
+            "activity_journey_highlights_notification_enable"
+        )
         self.rewardEnableCard = ExpandableSwitchSettingCard(
             "reward_enable",
             FIF.TRANSPARENT,
@@ -1500,9 +1506,9 @@ class SettingInterface(ScrollArea):
         self.languageCard = ComboBoxSettingCardLanguage(
             "ui_language",
             FIF.LANGUAGE,
-            '界面语言 / 界面語言 / 인터페이스 언어 / UI Language',
-            '切换后即时生效 / 切換後即時生效 / 변경 즉시 적용 / Takes effect immediately',
-            texts={'自动': 'auto', '简体中文': 'zh_CN', '繁體中文': 'zh_TW', '한국어': 'ko_KR', 'English': 'en_US'}
+            '界面语言 / 界面語言 / 日本語 / 인터페이스 언어 / UI Language',
+            '切换后即时生效 / 切換後即時生效 / 切り替え後すぐ適用 / 변경 즉시 적용 / Takes effect immediately',
+            texts={'自动': 'auto', '简体中文': 'zh_CN', '繁體中文': 'zh_TW', '日本語': 'ja_JP', '한국어': 'ko_KR', 'English': 'en_US'}
         )
 
     def __initLayout(self):
@@ -1577,7 +1583,8 @@ class SettingInterface(ScrollArea):
             self.activityDailyCheckInEnableCard,
             self.activityGardenOfPlentyEnableCard,
             self.activityRealmOfTheStrangeEnableCard,
-            self.activityPlanarFissureEnableCard
+            self.activityPlanarFissureEnableCard,
+            self.activityJourneyHighlightsNotificationEnableCard
         ])
         self.DailyGroup.addSettingCard(self.rewardEnableCard)
         self.rewardEnableCard.addSettingCards([
