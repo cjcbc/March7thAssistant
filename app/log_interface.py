@@ -251,6 +251,10 @@ class LogInterface(ScrollArea):
         super().__init__(parent=parent)
         self.process = None
         self.current_task = None
+        self._external_task_active = False
+        self._external_task_name = None
+        self._external_task_stop_callback = None
+        self._external_task_user_initiated_stop = False
         # 清理日志中的 ANSI 控制序列，兼容标准 ESC 序列与缺失 ESC 的残留序列（如 [36m）
         self._ansi_escape_re = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         self._orphan_ansi_re = re.compile(r'(?<!\x1b)\[(?:\d{1,3}(?:;\d{1,3})*)?[A-Za-z]')
@@ -875,9 +879,19 @@ class LogInterface(ScrollArea):
             self.appendLog(f"========== 开始任务: {name} ==========\n")
 
             proc = QProcess(self)
-            proc.setProcessChannelMode(QProcess.MergedChannels)
-            proc.readyReadStandardOutput.connect(self._onReadyRead)
-            proc.readyReadStandardError.connect(self._onReadyRead)
+            # BetterGI（.NET 应用）启动时会调用 AllocateConsole 并将继承的标准
+            # 句柄包装为同步 FileStream，与 QProcess 创建的 overlapped I/O 管道
+            # 不兼容，导致 "Handle does not support synchronous operations" 错误。
+            # 仅对 BetterGI 将标准流重定向到 NUL 以避免创建管道。
+            if os.path.basename(program).lower() == 'bettergi.exe':
+                null = QProcess.nullDevice()
+                proc.setStandardInputFile(null)
+                proc.setStandardOutputFile(null)
+                proc.setStandardErrorFile(null)
+            else:
+                proc.setProcessChannelMode(QProcess.MergedChannels)
+                proc.readyReadStandardOutput.connect(self._onReadyRead)
+                proc.readyReadStandardError.connect(self._onReadyRead)
             proc.finished.connect(self._onProcessFinished)
             proc.errorOccurred.connect(self._onProcessError)
 
@@ -949,6 +963,51 @@ class LogInterface(ScrollArea):
         # 非定时触发的手动/内置任务，清除 pending meta
         self._pending_task_meta = None
         self._startTask(command_or_task)
+
+    def startExternalTask(self, task_name, stop_callback=None):
+        """注册当前 GUI 进程内运行的外部任务，复用现有日志界面。"""
+        if self.isTaskRunning():
+            raise RuntimeError(self.tr('任务正在运行'))
+
+        self._pending_task_meta = None
+        self._external_task_active = True
+        self._external_task_name = str(task_name)
+        self._external_task_stop_callback = stop_callback
+        self._external_task_user_initiated_stop = False
+        self.current_task = self._external_task_name
+
+        self.clearLog()
+        self.appendLog(self.tr("========== 开始任务: {} ==========").format(self._external_task_name) + "\n")
+        self.statusLabel.setText(self.tr('正在运行: {}').format(self._external_task_name))
+        self.stopButton.setEnabled(True)
+
+    def finishExternalTask(self, exit_code=0, user_stopped=None):
+        """结束当前 GUI 进程内运行的外部任务，并更新日志页状态。"""
+        if not self._external_task_active and not self._external_task_name:
+            return
+
+        if user_stopped is None:
+            user_stopped = self._external_task_user_initiated_stop
+
+        effective_exit_code = exit_code
+        self.appendLog("\n" + "=" * 117 + "\n")
+        if user_stopped:
+            self.appendLog("任务已停止（用户停止）\n")
+            if effective_exit_code == 0:
+                effective_exit_code = 1
+        elif effective_exit_code == 0:
+            self.appendLog(f"任务完成，退出码: {effective_exit_code}\n")
+        else:
+            self.appendLog(f"任务异常结束，退出码: {effective_exit_code}\n")
+
+        self._external_task_active = False
+        self._external_task_name = None
+        self._external_task_stop_callback = None
+        self._external_task_user_initiated_stop = False
+        self.current_task = None
+        self._hideLogOverlay()
+        self._updateFinishedStatus(effective_exit_code)
+        self.taskFinished.emit(effective_exit_code)
 
     def _startTask(self, task, timeout=0):
         self.current_task = task
@@ -1051,6 +1110,22 @@ class LogInterface(ScrollArea):
             except Exception:
                 pass
             self._timeout_timer = None
+
+        # 如果当前没有运行的进程任务，但存在当前 GUI 进程内运行的外部任务，则转发停止请求
+        if not (self.process and self.process.state() == QProcess.Running):
+            if self._external_task_active:
+                self.appendLog("\n" + "=" * 117 + "\n")
+                if user_initiated:
+                    self.appendLog("用户请求停止任务...\n")
+                else:
+                    self.appendLog("停止当前任务...\n")
+                self._external_task_user_initiated_stop = bool(user_initiated)
+                if self._external_task_stop_callback:
+                    try:
+                        self._external_task_stop_callback()
+                    except Exception as e:
+                        self.appendLog(f"停止当前任务失败: {e}\n")
+                return
 
         # 如果当前没有运行的任务，但存在等待执行的完成后操作，则把本次停止视为取消该操作
         if not (self.process and self.process.state() == QProcess.Running):
@@ -1610,7 +1685,9 @@ class LogInterface(ScrollArea):
             pass
         self.appendLog(f"\n错误: {msg}\n")
         if error == QProcess.Crashed:
-            self.appendLog(f"\n可尝试关闭 “设置-杂项-启用 OCR GPU 加速” 选项后重新运行\n")
+            self.appendLog(f"\n可尝试将 “设置-杂项-OCR加速模式” 修改为 CPU 后重新运行\n")
+        elif error == QProcess.FailedToStart:
+            self.appendLog(f"\n请查看 “帮助-常见问题” 中关于杀毒软件的处理方式，必要时将小助手文件夹加入排除项/白名单\n")
         self._updateFinishedStatus(-1)
         self._hideLogOverlay()
 
@@ -1693,11 +1770,15 @@ class LogInterface(ScrollArea):
 
     def isTaskRunning(self):
         """检查任务是否正在运行"""
-        return self.process and self.process.state() == QProcess.Running
+        return (self.process and self.process.state() == QProcess.Running) or self._external_task_active
 
     def cleanup(self):
         """清理资源（在应用退出时调用）"""
         self._unregisterGlobalHotkey()
+        self._external_task_active = False
+        self._external_task_name = None
+        self._external_task_stop_callback = None
+        self._external_task_user_initiated_stop = False
         # 停止定时检查器
         if self._schedule_timer:
             self._schedule_timer.stop()
