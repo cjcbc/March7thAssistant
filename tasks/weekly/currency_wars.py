@@ -392,7 +392,7 @@ class CurrencyWars:
                 log.info(f"本次货币战争用时：{minutes} 分钟 {seconds} 秒")
                 return self.result if self.result is not None else False
 
-            time.sleep(2)
+            time.sleep(4)
 
     def check_main_screen(self):
         """
@@ -1407,7 +1407,7 @@ class CurrencyWars:
         """
 
         # 通过颜色快速判断一下是否存在奖励可领取（避免每次都滑动一遍）
-        if auto.is_rgb_ratio_above_threshold((1306 / 1920, 154 / 1080, 285 / 1920, 329 / 1080), (66, 72, 185), 0.8, tolerance=0.085):
+        if auto.is_rgb_ratio_above_threshold((1306 / 1920, 154 / 1080, 285 / 1920, 329 / 1080), (66, 72, 185), 0.8, tolerance=0.06):
             log.info("没有检测到可领取的奖励，跳过滑动")
             return
         else:
@@ -1487,6 +1487,7 @@ class CurrencyWars:
         for px, py in path_pixels[1:]:
             norm_pt = to_norm(px, py)
             crop_box = make_crop_box(norm_pt)
+            auto._debug_clear()
             pos = auto.find_element(crop_box, "crop", take_screenshot=False)
             auto.click_element_with_pos(pos, action="move")
 
@@ -1823,7 +1824,7 @@ class CurrencyWars:
         """
         if cfg.auto_battle_detect_enable and auto.find_element("./assets/images/share/base/not_auto.png", "image", 0.9, crop=(0.0 / 1920, 903.0 / 1080, 144.0 / 1920, 120.0 / 1080)):
             log.info("尝试开启自动战斗")
-            auto.press_key("v")
+            auto.press_key(cfg.get_value("hotkey_auto_battle", "v"))
 
     def check_click_continue(self):
         """
