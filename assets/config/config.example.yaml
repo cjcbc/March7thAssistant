@@ -9,6 +9,9 @@ log_level: INFO # 日志等级，可选值：INFO, DEBUG。INFO 仅记录重要�
 log_retention_days: 30 # 日志保留天数，超过此天数的日志文件将被自动删除。
 log_overlay_enable: true # 是否在游戏界面上显示实时日志浮窗（仅 Windows）。
 
+# 调试模式
+debug_mode_enable: false # 是否启用调试模式。开启后会在屏幕对应位置实时绘制检测范围框（透明悬浮窗），用于调试自动化识别。仅 Windows 生效。
+
 # 更新检查
 check_update: true # 是否检查更新。true 检查，false 不检查。
 
@@ -76,6 +79,7 @@ browser_mirror_urls:
 
 # 副本设置
 # 体力计划列表，每项包含副本类型、副本名称和剩余次数，例如：[["拟造花萼（金）", "回忆之蕾", 10], ["侵蚀隧洞", "睿治之径", 5]]
+power_enable: true # 是否启用清体力总开关。false 时完整运行和“日常”中的历战余响与清体力都会跳过，但单独执行“清体力”任务不受影响。
 power_plan: []
 instance_type: 拟造花萼（金） # 设置副本类型，可选值：拟造花萼（金）、拟造花萼（赤）、凝滞虚影、侵蚀隧洞、饰品提取。
 calyx_golden_preference: Jarilo-VI # 设置拟造花萼（金）偏好地区，可选值："雅利洛-VI"（Jarilo-VI）、仙舟「罗浮」（XianzhouLuofu）、匹诺康尼（Penacony）。
@@ -200,7 +204,7 @@ weekly_divergent_type: cycle # 积分奖励时执行的差分宇宙模式，可�
 weekly_divergent_level: 5 # 执行差分宇宙时的难度等级，取值范围 1-6，数值越大难度越高，其中难度 6 对应常规演算星阶模式。
 weekly_divergent_timestamp: 0 # 上次检测到完成差分宇宙积分奖励的时间戳，用于记录和控制运行频率。
 weekly_divergent_bonus_enable: false # 在领取积分奖励后自动执行饰品提取消耗沉浸器。true 开启，false 关闭。
-weekly_divergent_stable_mode: false # 是否启用差分宇宙稳定模式，运行若出现问题可尝试开启，适配低性能环境，云游戏默认使用此模式。true 开启，false 关闭。
+weekly_divergent_stable_mode: false # 是否启用差分宇宙低性能兼容模式，建议仅在低性能设备开启，可以提高事件和随意门交互的成功率（云游戏强制使用此模式）。true 开启，false 关闭。
 
 # 差分宇宙站点优先级配置
 divergent_station_priority_enable: false # 是否启用自定义站点优先级。true 开启，false 关闭。关闭时使用默认优先级。
@@ -227,6 +231,10 @@ universe_path: .\3rdparty\Auto_Simulated_Universe # 模拟宇宙路径，指向�
 universe_timeout: 20 # 模拟宇宙超时时间（单位：小时），设置脚本或程序的最长运行时间。
 universe_requirements: false # 是否已安装模拟宇宙依赖。true 表示已安装，false 表示未安装或需要重新安装。
 universe_timestamp: 0 # 上次运行模拟宇宙的时间戳，用于记录和控制运行频率。
+divergent_universe_daily_completed_count: 0 # 当日成功通关差分宇宙的次数，任何方式运行并成功通关都会记录此值。
+divergent_universe_daily_completed_timestamp: 0 # 上次更新差分宇宙每日计数的时间戳，用于在次日刷新后自动重置次数。
+divergent_universe_weekly_completed_count: 0 # 当周成功通关差分宇宙的次数，任何方式运行并成功通关都会记录此值。
+divergent_universe_weekly_completed_timestamp: 0 # 上次更新差分宇宙每周计数的时间戳，用于在周刷新后自动重置次数。
 divergent_type: normal # 差分宇宙模式，可选值："normal"（常规演算）或 "cycle"（周期演算）。
 divergent_team_type: 终结技 # 差分宇宙队伍类型，可选值：追击/dot/终结技/击破/盾反
 universe_fate: 不配置 # 模拟宇宙使用的命途
@@ -364,6 +372,7 @@ script_path: C:\Path\to\your\Script.bat
 hotkey_technique: e # 设置游戏内使用秘技的按键。
 hotkey_map: m # 设置打开地图的按键。
 hotkey_warp: f3 # 设置打开跃迁的按键。
+hotkey_auto_battle: v # 设置自动战斗的按键。
 
 # 图形界面快捷键设置
 hotkey_stop_task: f10 # 设置停止任务的全局快捷键（支持后台）。
@@ -391,6 +400,9 @@ scheduled_run_time: "04:00" # 旧配置：单一定时运行时间（仅用于�
 # 定时任务冲突处理：当计划任务触发且当前已有任务在运行时的处理策略
 # 可选值：skip（跳过需要运行的任务），stop（停止正在运行的任务并启动计划任务）
 scheduled_on_conflict: skip
+# 链式任务失败后是否继续执行后续任务
+# true：继续执行后续任务，false：停止执行后续任务
+scheduled_chain_continue_on_failure: true
 scheduled_tasks: [] # 示例：
 # scheduled_tasks:
 #   - id: "0001-..."

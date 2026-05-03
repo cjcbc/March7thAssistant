@@ -42,7 +42,7 @@ class Echoofwar:
                                     instance_name = target[1]
                                 else:
                                     instance_name = cfg.instance_names["历战余响"]
-                                if instance_name == "随机":
+if instance_name == "随机":
                                     with open("assets/config/instance_names.json", "r", encoding="utf-8") as f:
                                         data = json.load(f)
                                         category = data["历战余响"]
