@@ -8,10 +8,12 @@ load_language()
 # 可用的任务列表（任务ID -> 任务名称）
 AVAILABLE_TASKS = {
     "main": tr("完整运行"),
+    "routine": tr("日常"),
     "daily": tr("每日实训"),
     "power": tr("清体力"),
     "game_update": tr("更新游戏"),
     "game_pre_download": tr("预下载游戏"),
+    "app_update": tr("更新三月七小助手"),
     "currencywars": tr("货币战争"),
     "divergent": tr("差分宇宙"),
     "fight": tr("锄大地"),

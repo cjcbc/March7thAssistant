@@ -105,6 +105,7 @@ from module.game import cloud_game
 import tasks.reward as reward
 import tasks.challenge as challenge
 import tasks.version as version
+import tasks.version.app_update as app_update_task
 
 from tasks.daily.daily import Daily
 from tasks.daily.fight import Fight
@@ -137,7 +138,6 @@ def run_main_actions(no_run_immediately=False):
             notif.start_batch()
         version.start()
         game.start()
-        reward.start_specific("dispatch")
         Daily.start()
         reward.start()
         game.stop(True)
@@ -173,6 +173,7 @@ def run_sub_task(action):
             universe.start()
 
     sub_tasks = {
+        "routine": Daily.routine,
         "daily": lambda: (Daily.run(), reward.start()),
         "power": Power.run,
         "currencywars": lambda: currencywars(),
@@ -244,7 +245,7 @@ def main(action=None, no_run_immediately=False, workflow_name=None, workflow_ste
         run_main_actions(no_run_immediately)
 
     # 子任务
-    elif action in ["daily", "power", "currencywars", "currencywarsloop", "currencywarstemp", "divergent", "divergentloop", "divergenttemp", "fight", "universe", "forgottenhall", "purefiction", "apocalyptic", "redemption"]:
+    elif action in ["routine", "daily", "power", "currencywars", "currencywarsloop", "currencywarstemp", "divergent", "divergentloop", "divergenttemp", "fight", "universe", "forgottenhall", "purefiction", "apocalyptic", "redemption"]:
         run_sub_task(action)
 
     # 子任务 原生图形界面
@@ -257,6 +258,9 @@ def main(action=None, no_run_immediately=False, workflow_name=None, workflow_ste
 
     elif action == "game":
         game.start()
+
+    elif action == "app_update":
+        app_update_task.start()
 
     elif action == "game_update":
         game.update_via_launcher()
@@ -275,8 +279,14 @@ def main(action=None, no_run_immediately=False, workflow_name=None, workflow_ste
 
 # 程序结束时的处理器
 def exit_handler():
-    """注册程序退出时的处理函数，用于清理OCR资源."""
+    """注册程序退出时的处理函数，用于清理OCR和调试资源."""
     ocr.exit_ocr()
+    # 清理调试叠加层
+    try:
+        from module.automation import auto
+        auto.shutdown_debug()
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
