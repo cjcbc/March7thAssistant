@@ -1,0 +1,435 @@
+[33mcommit 3cdf4e88289296923a0b554748ba1fba91a4531c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: cjcbc <cjcbc@qq.com>
+Date:   Wed Mar 4 00:23:08 2026 +0800
+
+    Merge upstream and keep local changes
+
+[33mcommit e7f7c253464e5a080c3ad0bbb5d9f125b57d2ff3[m[33m ([m[1;31mupstream/main[m[33m)[m
+Author: 0frostmourne0 <0frostmourne0@gmail.com>
+Date:   Tue Mar 3 21:08:55 2026 +0800
+
+    feat: 支持爻光、火花、阮梅时装 (#905)
+
+[33mcommit f382d5ba540145b1a667352a46038fd2fd49b864[m[33m ([m[1;33mtag: [m[1;33mv2026.2.28[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 28 18:52:34 2026 +0800
+
+    chore: 更新版本号至 v2026.2.28，并添加更新日志
+
+[33mcommit 19fea0ca30f8472590e3e14beb5e926ec9dcec5d[m
+Author: g60 <107414639+g60cBQ@users.noreply.github.com>
+Date:   Sat Feb 28 15:43:43 2026 +0800
+
+    fix: 修复队伍有空位时使用支援角色误移除最后一位角色的问题 (#900)
+
+[33mcommit 0711fffe70d495573d4d41be931f49e6369ffeb6[m
+Merge: 73bb3aa 18e0b07
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 24 20:27:32 2026 +0800
+
+    Merge branch 'main' of https://github.com/moesnow/March7thAssistant
+
+[33mcommit 73bb3aa476fa2f4de0f353cd26d09f90b0f5486b[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 24 20:27:08 2026 +0800
+
+    feat: 添加“专家研讨会”至投资环境黑名单列表
+
+[33mcommit 18e0b0701be74eec3ef0076131c555f6a0861e55[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sun Feb 22 00:18:20 2026 +0800
+
+    fix: 增强分辨率检查机制，增加重试逻辑以确保游戏分辨率正确
+
+[33mcommit 639914a6b124baec8113bd6c46f666ab91da9659[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sun Feb 22 00:10:55 2026 +0800
+
+    fix: 增加游戏启动前的分辨率检查以解决偶发加载慢分辨率修改不生效的问题
+
+[33mcommit 9615be38deb836f151ba1b358d75fe1f8ba5f617[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 21 23:59:50 2026 +0800
+
+    fix: 调整判断饰品提取副本的图像匹配阈值
+
+[33mcommit a904de41e3b134f2f239ef280fdd73af957ab4fb[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 21 23:47:36 2026 +0800
+
+    build: 更新 onnxruntime 版本至 1.24.2
+
+[33mcommit d6f17a7cfeaba4064bc9cc6d757545ada98505d7[m[33m ([m[1;33mtag: [m[1;33mv2026.2.21[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 21 23:46:05 2026 +0800
+
+    chore: 更新版本号至 v2026.2.21，并更新更新日志
+
+[33mcommit ebeed4d8079e405059129ae58daf7e8e001094ee[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 21 23:42:56 2026 +0800
+
+    feat: 增强下载功能，支持断点续传和错误重试机制
+
+[33mcommit fe227cf84e14049512a0a1764f7498b7924aa924[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 21 23:42:11 2026 +0800
+
+    feat: 重构下载逻辑，优先使用内置下载避免证书吊销检查错误
+
+[33mcommit d2e8b82e21c0200de0ffc8d2792115ba7b7f13e2[m
+Author: Copilot <198982749+Copilot@users.noreply.github.com>
+Date:   Sat Feb 21 19:06:52 2026 +0800
+
+    fix: Fix loop mode missing scheduled run after system sleep/wake (#898)
+    
+    * Initial plan
+    
+    * Fix: 系统休眠后循环模式未按时执行的问题
+    
+    Co-authored-by: moesnow <11678347+moesnow@users.noreply.github.com>
+    
+    ---------
+    
+    Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com>
+    Co-authored-by: moesnow <11678347+moesnow@users.noreply.github.com>
+
+[33mcommit a74060e9bd366471893949d910de8d5f40ea6508[m
+Author: g60 <107414639+g60cBQ@users.noreply.github.com>
+Date:   Sat Feb 21 18:57:10 2026 +0800
+
+     feat: 适配 4.0 版本饰品提取编队新界面 (#896)
+
+[33mcommit ff058c9d22a9ebe72f6d1dd865b34ce0be668bee[m[33m ([m[1;33mtag: [m[1;33mv2026.2.20[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 20 15:45:53 2026 +0800
+
+    chore: 更新版本号至 v2026.2.20，并更新更新日志
+
+[33mcommit 26440dad3f581e071bc6156108e05c908f20a83f[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 20 15:08:31 2026 +0800
+
+    fix: 在所有 ARM 架构上对 OPENVINO 引擎进行特殊处理
+
+[33mcommit 5686dda74d045a04933acfae4a798a8af11edf69[m
+Author: architect9331 <139700833+architect9331@users.noreply.github.com>
+Date:   Thu Feb 19 09:12:40 2026 +0800
+
+    feat: 云游戏登录二维码支持通知推送 (#893)
+    
+    * feat: 云游戏登录二维码支持通知推送
+    
+    - 新增 _send_qr_notification 方法
+    - 复用项目通知系统，支持所有启用图片的通知渠道
+    - 飞书、Telegram、企业微信等均可接收登录二维码
+    
+    使用场景：无头服务器部署时，可通过通知渠道接收登录二维码
+    
+    * feat: 二维码登录通知增加重复推送上限
+    
+    - 增加二维码通知计数上限（默认3次）
+    - 增加同链接最小推送间隔（默认60秒）
+    - 每轮二维码登录流程开始时重置限流状态
+    
+    避免定时任务在休息时段因二维码刷新导致频繁推送
+    
+    ---------
+    
+    Co-authored-by: architect9331 <architect9331@users.noreply.github.com>
+
+[33mcommit bf0bff177fa1acdf516e7783ce9278e677184625[m[33m ([m[1;33mtag: [m[1;33mv2026.2.18[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Wed Feb 18 11:51:10 2026 +0800
+
+    chore: 更新版本号至 v2026.2.18，并更新更新日志
+
+[33mcommit d6648e498ae0bd538d2193efcf56d58775aceeba[m
+Author: g60 <107414639+g60cBQ@users.noreply.github.com>
+Date:   Wed Feb 18 11:48:36 2026 +0800
+
+    fix: 修复培养目标无法正确识别拟造花萼金的问题 (#888)
+
+[33mcommit d029d4fcb4e146c787f3ed3541bdc5bd0c30d480[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 17 14:09:15 2026 +0800
+
+    feat: 添加新年兑换码（过期时间暂时未知）
+
+[33mcommit 9c4bd4d677a31d1b7dd91f38d8565589bb172284[m[33m ([m[1;33mtag: [m[1;33mv2026.2.17[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 17 01:18:32 2026 +0800
+
+    chore: 更新版本号至 v2026.2.17，并更新更新日志
+
+[33mcommit 128ef7eaf39a9c0830b4d193c02507431764eb03[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 17 01:13:32 2026 +0800
+
+    fix: 修复货币战争补给阶段选择异常
+
+[33mcommit d7abc39263d0c57662bed69f8b41567c29a3eeb7[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 17 01:11:56 2026 +0800
+
+    fix: 调整判断实训奖励完成的图像匹配阈值
+
+[33mcommit 0160ae1586095162a8e6b6f83580730e779e7b2d[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Mon Feb 16 12:47:47 2026 +0800
+
+    feat: 添加“一共”翻译至多语言文件
+
+[33mcommit c53328a787555bae42d102be791b49d9ecdec926[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Mon Feb 16 12:44:16 2026 +0800
+
+    fix: 优化“抽卡记录”和“启动游戏”的英文翻译
+
+[33mcommit 378dcfeae656466c499fbf60f43b1370acd751e9[m
+Author: loader3229 <1010903229@qq.com>
+Date:   Mon Feb 16 12:39:37 2026 +0800
+
+    fix: 修正部分GUI界面未翻译的问题 (#868)
+    
+    * fix: 修正部分GUI界面未翻译的问题
+    
+    * fix: 恢复五星角色名称的本地化处理
+    
+    ---------
+    
+    Co-authored-by: moesnow <11678347+moesnow@users.noreply.github.com>
+
+[33mcommit ca906056fb18455f9c108b85b9fb753258e01543[m[33m ([m[1;33mtag: [m[1;33mv2026.2.16[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Mon Feb 16 11:29:15 2026 +0800
+
+    chore: 更新版本号至 v2026.2.16 并更新更新日志
+
+[33mcommit ad160ae3511849a08c6450d1255b0abdc4b23cc3[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Mon Feb 16 11:29:09 2026 +0800
+
+    docs: 删除多余平台支持部分
+
+[33mcommit 698d8fa2cbf6d40402f99e2cb0c585e5f68c93a9[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Mon Feb 16 11:26:07 2026 +0800
+
+    feat: 更新可展开组合框设置卡片类名并添加本地化支持
+
+[33mcommit 0bd556d34691bb8f49e308885ad13b5a8ee45f09[m
+Author: g60 <107414639+g60cBQ@users.noreply.github.com>
+Date:   Mon Feb 16 10:52:26 2026 +0800
+
+    feat: 适配 4.0 版本支援新界面 (#882)
+
+[33mcommit 536a6678e0884584770c43044b73465ed97be2a3[m
+Author: g60 <107414639+g60cBQ@users.noreply.github.com>
+Date:   Mon Feb 16 10:52:09 2026 +0800
+
+    feat: 添加 4.0 英文与韩文翻译 (#883)
+
+[33mcommit 3950e421e418a59f8a994a3a96d7bfbeef40aeae[m[33m ([m[1;33mtag: [m[1;33mv2026.2.13[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 21:08:45 2026 +0800
+
+    chore: 更新版本号至 v2026.2.13 并添加更新日志
+
+[33mcommit e8144311044d202479f61c73da081bec92b4eb92[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 21:08:35 2026 +0800
+
+    fix: 修复货币战争装备过多时收集奖励失败的问题
+
+[33mcommit 77e797de26e4420dd7a030d84276e4ba3553ed49[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 20:35:48 2026 +0800
+
+    fix: pillow affected by out-of-bounds write when loading PSD images
+
+[33mcommit 8e53821737c36d41effa77cc4d1e77820d5f73cf[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 20:30:44 2026 +0800
+
+    feat: 添加 4.0 版本新副本
+
+[33mcommit 96c291c915e0293c8d27f2906ebbf20c7ec8b133[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 20:25:18 2026 +0800
+
+    fix: 暂时移除尚不支持的特殊外部程序定义
+
+[33mcommit 4208e9781719720253cd0af2ee076505bcf6cb0a[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 18:47:17 2026 +0800
+
+    feat: 适配 4.0 版本委托奖励新界面
+
+[33mcommit 1b0420db7bd4cceb428dae4e8786818f089e48b1[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 13 16:42:00 2026 +0800
+
+    fix: 修复抽卡记录获取失败的问题
+    
+    - 更新信息提示文本以修正格式错误
+
+[33mcommit b49a0087953b1d2c500b3e3983c3f7dff9420bff[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Tue Feb 10 14:21:16 2026 +0800
+
+    fix: 调整副本名称的配置项位置，并更新说明
+
+[33mcommit 3ea372eb1bd8e05f22bb3cf516cf7c40cd11bb32[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 14:24:54 2026 +0800
+
+    build: 更新 onnxruntime 和 onnxruntime-directml 版本至 1.24.1
+
+[33mcommit 7a573062047bf3e4cbc5b0275352e5ec46e77bbd[m[33m ([m[1;33mtag: [m[1;33mv2026.2.9[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:53:32 2026 +0800
+
+    chore: 更新版本号至 v2026.2.9，并更新更新日志
+
+[33mcommit ae2454fcb5a509b0ab19bf540bc862853e7d576a[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:50:15 2026 +0800
+
+    fix: 修复路径获取逻辑以支持打包状态下的语言文件加载
+
+[33mcommit ec87ade86d4304e759168bc6b0fc70778c33c9f0[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:33:39 2026 +0800
+
+    fix: 修复更新日志中的链接格式错误
+
+[33mcommit d6ed5382680da45c30e52d8d7e9aeed21378820a[m[33m ([m[1;33mtag: [m[1;33mv2026.2.8[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:17:20 2026 +0800
+
+    chore: 更新版本号至 v2026.2.8，并更新更新日志
+
+[33mcommit 773187d63c472a9896778f436e5ae265248c1cc1[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:16:43 2026 +0800
+
+    chore: docker 移除 opencc 依赖项
+
+[33mcommit 028c8c9e5b09e4511e3d184adf3954f7020de050[m[33m ([m[1;33mtag: [m[1;33mv2026.2.7[m[33m)[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Sat Feb 7 00:07:42 2026 +0800
+
+    chore: 更新版本号至 v2026.2.7，并添加更新日志
+
+[33mcommit 4036a2f656650fdacc46570e96a4f03e4bb23532[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 6 20:48:55 2026 +0800
+
+    fix: 更新兑换码正则表达式以支持中文字符
+
+[33mcommit f695d4c7bbf2ffd98b1609a0cc604ee3f2c28284[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Feb 6 20:44:39 2026 +0800
+
+    feat: 更新 4.0 版本前瞻直播兑换码
+
+[33mcommit 5610946d8da621556795e6cf799eb21f2b6b6d77[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Thu Feb 5 18:38:33 2026 +0800
+
+    fix: 更新 rapidocr 版本至 3.6.0
+
+[33mcommit f0b51bddf53f6ef682ce2f7b5d00556c3f823e4c[m
+Author: loader3229 <1010903229@qq.com>
+Date:   Fri Jan 30 19:46:02 2026 +0800
+
+    fix: 修正一些繁体中文翻译错误（使用官方繁体中文） (#867)
+
+[33mcommit 1bb0a422e36a7efffc0a3056dbef44db5c31e663[m
+Author: loader3229 <1010903229@qq.com>
+Date:   Fri Jan 30 19:44:07 2026 +0800
+
+    fix: 修正一些英文翻译错误（使用官方英文） (#866)
+
+[33mcommit 8b40974b91abdaa447921b5e6ad0209874c4729e[m
+Author: g60cBQ <107414639+g60cBQ@users.noreply.github.com>
+Date:   Sat Jan 24 10:52:35 2026 -0500
+
+    fix: 修正英文本地化错误对齐官方译名 (#859)
+
+[33mcommit 3bf55112a4ae4b169747213cf133fb70d325cb3e[m
+Author: hohofught <108419818+hohofught@users.noreply.github.com>
+Date:   Fri Jan 23 17:18:28 2026 +0900
+
+    Update: Korean and English translations (#858)
+
+[33mcommit 09c64fdd08f8ec99210898b77901b3a0a39d0ab5[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 15:23:34 2026 +0800
+
+    feat: 增加自动语言检测功能，优化语言设置逻辑
+    
+    - 修改语言加载逻辑，支持自动检测用户语言设置
+    - 更新配置示例，允许选择自动判断语言
+    - 调整相关模块以使用新的语言设置属性
+
+[33mcommit 1463de001df0b87a21f489e080220a711e997f8c[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 14:48:45 2026 +0800
+
+    feat: 优化应用语言加载逻辑，支持多种语言翻译器实例创建
+
+[33mcommit 09b709b6a3553780ca05f2460d29de4407e70b46[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 14:35:19 2026 +0800
+
+    feat: 增加 UI 语言变更支持，优化语言设置功能
+    
+    - 添加 ComboBoxSettingCardLanguage 类，用于处理 UI 语言的选择和变更提示
+    - 在 SignalBus 中添加 uiLanguageChanged 信号
+    - 更新主窗口以连接语言变更信号，显示重启提示
+    - 本地化文件中添加相关提示信息
+
+[33mcommit a66b80f1492f3c4d30e96f1e1e2ea019b4b919a9[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 14:09:30 2026 +0800
+
+    feat: 增加多个程序名称的本地化支持
+
+[33mcommit cdf2f2461e9297ab2034b3cc5b95e793d08b292d[m
+Merge: 06525aa 267b494
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 14:06:21 2026 +0800
+
+    Merge branch 'main' of https://github.com/moesnow/March7thAssistant
+
+[33mcommit 267b4946031ec2067b452604f8125174967fc695[m
+Author: g60cBQ <107414639+g60cBQ@users.noreply.github.com>
+Date:   Fri Jan 23 01:02:42 2026 -0500
+
+    fix: 修复培养目标空引用问题 (#857)
+
+[33mcommit 06525aacba9f6474d8dc788afbd584f4b7a34f1d[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 14:00:43 2026 +0800
+
+    feat: 增加副本名称本地化支持，优化副本名称加载逻辑
+
+[33mcommit 6db0a5fc71c4bad01f8580432ab3840a072cb347[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 12:17:48 2026 +0800
+
+    feat: 优化角色名称加载功能，支持翻译
+
+[33mcommit 6015611e0f4e5bb9a277fd7f312ec78a1e553d47[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 12:01:50 2026 +0800
+
+    feat: 增强语言加载功能，支持缺失翻译提示和同步翻译文件
+
+[33mcommit e0c46a78fe8df58faef417fa8985244888bc59a5[m
+Author: moesnow <11678347+moesnow@users.noreply.github.com>
+Date:   Fri Jan 23 10:33:39 2026 +0800
+
+    feat: 根据语言设置调整界面标题显示
