@@ -10,6 +10,7 @@ from .relicset import Relicset
 import time
 from module.localization import get_raw_instance_names
 import json
+import re
 
 
 class Instance:
@@ -162,6 +163,12 @@ class Instance:
                 if auto.find_element(instance_name, "text", max_retries=1, include=True, crop=(591.0 / 1920, 98.0 / 1080, 594.0 / 1920, 393.0 / 1080)):
                     success = True
                     break
+
+                if auto.find_element("是否切换", "text", max_retries=1, include=True):
+                    log.info("检测到切换角色视角提示，尝试点击确认")
+                    auto.click_element("确认", "text", include=True)
+                    time.sleep(0.5)
+
                 time.sleep(2)
         else:
             while time.monotonic() - start_time < timeout:
@@ -176,6 +183,11 @@ class Instance:
                         time.sleep(0.5)
                         auto.click_element("确认", "text", include=True)
 
+                if auto.find_element("是否切换", "text", max_retries=1, include=True):
+                    log.info("检测到切换角色视角提示，尝试点击确认")
+                    auto.click_element("确认", "text", include=True)
+                    time.sleep(0.5)
+
                 time.sleep(2)
         if not success:
             Base.send_notification_with_screenshot(cfg.notify_template['InstanceNotCompleted'].format(error="传送可能失败"), NotificationLevel.ERROR)
@@ -189,18 +201,43 @@ class Instance:
         if "饰品提取" in instance_type:
             time.sleep(1)
 
-            # 选择角色
-            # 待后续更新支持
+            # 如果配置了自动切换队伍，则尝试切换队伍。查找失败不影响后续流程。
+            if cfg.instance_team_enable:
+                log.info("尝试自动切换队伍")
+                instance_name = Instance.get_current_instance_name(instance_type)
+                team = Instance.get_target_team(instance_type, instance_name)
+                if re.fullmatch(r"[01]?[0-9]", str(team)):
+                    team_name = f"队伍{int(team)}"
+                    if auto.click_element((619 / 1920, 780 / 1080, 77 / 1920, 75 / 1080), "crop"):
+                        time.sleep(1.0)
+                        if auto.click_element("预设编队", "text", max_retries=4, retry_delay=0.5, crop=(6 / 1920, 8 / 1080, 578 / 1920, 168 / 1080)):
+                            log.info(f"尝试切换到{team_name}")
+                            time.sleep(1.0)
+                            team_name_crop = (6 / 1920, 116 / 1080, 300 / 1920, 900 / 1080)
+                            auto.click_element((38 / 1920, 128 / 1080, 521 / 1920, 196 / 1080), "crop", action="move")
+                            time.sleep(1.0)
+                            for _ in range(4):  # 尝试滚动寻找队伍
+                                if auto.click_element(team_name, "text", max_retries=4, retry_delay=0.5, crop=team_name_crop):
+                                    log.info(f"切换到{team_name}成功")
+                                    break
+                                log.info(f"未找到{team_name}，尝试滚动")
+                                auto.mouse_scroll(28, -1, False)
+                                time.sleep(1)
+                            time.sleep(1.0)
+                            auto.press_key("esc")
+                else:
+                    log.error(f"队伍编号 {team} 格式错误，应为数字")
 
+            # 如果未配置自动切换队伍或切换失败，判断队伍是否为空，如果是空队伍则尝试点击进入并选择队伍1
             team_slot_crop = (624.0 / 1920, 772.0 / 1080, 267.0 / 1920, 91.0 / 1080)
             if auto.find_element("./assets/images/share/universe/empty_character_slot.png", "image_count", 0.8, crop=team_slot_crop, pixel_bgr=[233, 233, 233]) == 3:
+                log.info("检测到缺少队伍，尝试进入队伍配置界面")
                 if auto.click_element("./assets/images/share/universe/empty_character_slot.png", "image", 0.8, crop=team_slot_crop, take_screenshot=False):
                     time.sleep(2)
                     if auto.click_element("预设编队", "text", max_retries=4, retry_delay=0.5, crop=(6 / 1920, 8 / 1080, 578 / 1920, 168 / 1080)):
-                        click_x = auto.screenshot_pos[0] + 260 / auto.screenshot_scale_factor
-                        click_y = auto.screenshot_pos[1] + 175 / auto.screenshot_scale_factor
+                        log.info("尝试切换到队伍1")
                         time.sleep(1.0)
-                        if auto.click_element_with_pos(((click_x, click_y), (click_x, click_y))):
+                        if auto.click_element((38 / 1920, 128 / 1080, 521 / 1920, 196 / 1080), "crop"):
                             time.sleep(1.0)
                             auto.press_key("esc")
                 time.sleep(1.0)
@@ -397,6 +434,14 @@ class Instance:
             elif auto.find_element("已处于无法战斗状态", "text", max_retries=1, include=True, threshold=0.7):
                 log.info("队伍中存在无法战斗的角色，尝试继续战斗。")
                 auto.click_element("./assets/images/zh_CN/base/confirm.png", "image", 0.9)
+            elif auto.find_element("长时间未操作", "text", max_retries=1, include=True, threshold=0.75):
+                log.error("检测到云游戏超时弹窗")
+                Base.send_notification_with_screenshot("检测到云游戏超时弹窗\n"
+                                                       "战斗已中断，请：\n"
+                                                       "- 检查是否被初次挑战教程卡住\n"
+                                                       "- 检查配队是否正确\n"
+                                                       "- 尝试减少连续挑战次数", NotificationLevel.ERROR)
+                raise RuntimeError("云游戏不活跃超时")
             # 检测遗器背包已满的提示
             # 每次战斗检测循环中进行多次快速检测
             for _ in range(3):

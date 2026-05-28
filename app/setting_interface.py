@@ -8,7 +8,7 @@ from .common.style_sheet import StyleSheet
 from .components.pivot import SettingPivot
 from .card.comboboxsettingcard1 import ComboBoxSettingCard1
 from .card.comboboxsettingcard2 import ComboBoxSettingCard2, ComboBoxSettingCardUpdateSource, ComboBoxSettingCardLog, ComboBoxSettingCardLanguage
-from .card.switchsettingcard1 import SwitchSettingCard1, TimestampSwitchSettingCard, StartMarch7thAssistantSwitchSettingCard, SwitchSettingCardTeam, SwitchSettingCardImmersifier, SwitchSettingCardGardenofplenty, SwitchSettingCardEchoofwar, SwitchSettingCardHotkey, SwitchSettingCardCloudGameStatus
+from .card.switchsettingcard1 import SwitchSettingCard1, SwitchSettingCardWithAction, TimestampSwitchSettingCard, StartMarch7thAssistantSwitchSettingCard, SwitchSettingCardTeam, SwitchSettingCardImmersifier, SwitchSettingCardGardenofplenty, SwitchSettingCardEchoofwar, SwitchSettingCardHotkey, SwitchSettingCardCloudGameStatus
 from .card.rangesettingcard1 import RangeSettingCard1
 from .card.pushsettingcard1 import CustomPushSettingCard, DualPushSettingCard, PushSettingCardAction, PushSettingCardInstance, PushSettingCardInstanceChallengeCount, PushSettingCardNotifyTemplate, PushSettingCardMirrorchyan, PushSettingCardStr, PushSettingCardEval, PushSettingCardDate, PushSettingCardKey, PushSettingCardTeam, PushSettingCardFriends, PushSettingCardTeamWithSwap, PushSettingCardPowerPlan, InstanceTeamSettingCard
 from .card.timepickersettingcard1 import TimePickerSettingCard1
@@ -23,6 +23,7 @@ from tasks.base.tasks import start_task
 from .tools.check_update import checkUpdate
 import os
 import sys
+import platform
 
 
 class _PivotScrollFilter(QObject):
@@ -881,6 +882,12 @@ class SettingInterface(ScrollArea):
             None,
             "cloud_game_fullscreen_enable"
         )
+        self.cloudGameUsePaidTimeCard = SwitchSettingCard1(
+            FIF.SHOPPING_CART,
+            tr("使用付费时长"),
+            tr("打开后可在使用云游戏时使用付费时长免除排队"),
+            "cloud_game_use_paid_time"
+        )
         self.cloudGameMaxQueueTimeCard = RangeSettingCard1(
             "cloud_game_max_queue_time",
             [1, 120],
@@ -1134,6 +1141,7 @@ class SettingInterface(ScrollArea):
                     "userid": {"title": tr("用户/群组 ID"), "description": tr("接收通知的用户 ID 或群组 ID（以 - 开头）")},
                     "api_url": {"title": tr("自定义 API 地址"), "description": tr("可选参数，自定义 Telegram API 地址，例如 api.telegram.org")},
                     "proxies": {"title": tr("代理配置"), "description": tr("可选参数，例如 127.0.0.1:10808 或 socks5://127.0.0.1:1080，不填则使用系统 PAC 代理")},
+                    "thread_id": {"title": tr("话题 ID"), "description": tr("可选参数，开启 Topics 功能的群组需要填写对应的话题 ID")},
                 }
             },
             "matrix": {
@@ -1179,7 +1187,8 @@ class SettingInterface(ScrollArea):
                     "icon": {"title": tr("图标地址"), "description": tr("可选参数，通知图标的 URL")},
                     "isarchive": {"title": tr("归档"), "description": tr("可选参数：1 归档，0 不归档")},
                     "sound": {"title": tr("提示音"), "description": tr("可选参数，自定义提示音名称")},
-                    "url": {"title": tr("服务地址"), "description": tr("可选参数，自定义 Bark 服务的 URL")},
+                    "url": {"title": tr("跳转链接"), "description": tr("可选参数，通知点击后跳转的 URL")},
+                    "base_url": {"title": tr("服务地址"), "description": tr("可选参数，自定义 Bark 服务的 URL")},
                     "copy": {"title": tr("复制内容"), "description": tr("可选参数，通知点击后复制内容")},
                     "autocopy": {"title": tr("自动复制"), "description": tr("可选参数，是否自动复制")},
                     "cipherkey": {"title": tr("加密密钥"), "description": tr("可选参数，推送加密密钥，需在 Bark APP 中配置相同的密钥")},
@@ -1268,6 +1277,7 @@ class SettingInterface(ScrollArea):
                     "corpsecret": {"title": tr("应用密钥")},
                     "agentid": {"title": tr("应用 AgentId")},
                     "touser": {"title": tr("接收用户"), "description": tr("可选参数，接收用户，@all 表示全员")},
+                    "base_url": {"title": tr("自定义 API 地址"), "description": tr("可选参数，自定义企业微信 API 地址，用于反向代理绕过可信 IP 限制")},
                 }
             },
             "gotify": {
@@ -1484,7 +1494,7 @@ class SettingInterface(ScrollArea):
             tr('检查更新'),
             FIF.INFO,
             tr('关于'),
-            tr('当前版本：') + " " + cfg.version
+            tr('当前版本：') + " " + cfg.version + " | Python " + sys.version.split()[0] + " | " + platform.system() + " " + platform.machine()
         )
         self.updateSourceCard = ExpandableComboBoxSettingCardUpdateSource(
             "update_source",
@@ -1528,6 +1538,13 @@ class SettingInterface(ScrollArea):
             '界面语言 / 界面語言 / 日本語 / 인터페이스 언어 / UI Language',
             '切换后即时生效 / 切換後即時生效 / 切り替え後すぐ適用 / 변경 즉시 적용 / Takes effect immediately',
             texts={'自动': 'auto', '简体中文': 'zh_CN', '繁體中文': 'zh_TW', '日本語': 'ja_JP', '한국어': 'ko_KR', 'English': 'en_US'}
+        )
+        self.telemetryCard = SwitchSettingCardWithAction(
+            tr("查看说明"),
+            FIF.FEEDBACK,
+            tr("匿名使用数据收集"),
+            tr("帮助开发者了解程序使用情况，改进功能"),
+            "telemetry_enable"
         )
 
     def __initLayout(self):
@@ -1702,6 +1719,7 @@ class SettingInterface(ScrollArea):
             self.browserLaunchArgCard
         ])
         self.CloudGameGroup.addSettingCard(self.cloudGameFullScreenCard)
+        self.CloudGameGroup.addSettingCard(self.cloudGameUsePaidTimeCard)
         self.CloudGameGroup.addSettingCard(self.browserHeadlessCard)
         self.browserHeadlessCard.addSettingCards([self.browserHeadlessRestartCard])
         self.CloudGameGroup.addSettingCard(self.cloudGameMaxQueueTimeCard)
@@ -1770,6 +1788,7 @@ class SettingInterface(ScrollArea):
         ])
         self.AboutGroup.addSettingCard(self.mirrorchyanCdkCard)
         self.AboutGroup.addSettingCard(self.languageCard)
+        self.AboutGroup.addSettingCard(self.telemetryCard)
 
         if sys.platform != 'win32':
             self.gamePathCard.setHidden(True)
@@ -1852,6 +1871,7 @@ class SettingInterface(ScrollArea):
         self.bilibiliCard.clicked.connect(self.__openUrl("https://space.bilibili.com/3706960664857075"))
 
         self.aboutCard.clicked.connect(lambda: checkUpdate(self.parent))
+        self.telemetryCard.actionClicked.connect(self.__showTelemetryInfo)
 
         # 连接可展开卡片的展开状态改变信号，在动画前调整 stackedWidget 高度
         connect_expand_state(self.borrowEnableCard)
@@ -1931,6 +1951,16 @@ class SettingInterface(ScrollArea):
             tr("今日已完成 {} 次").format(daily_count),
             tr("本周已完成 {} 次").format(weekly_count),
         ])
+
+    def __showTelemetryInfo(self):
+        message = MessageBox(
+            tr("匿名使用数据收集说明"),
+            tr("我们只收集用于改进稳定性、兼容性和功能体验的匿名统计信息，不用于识别你的真实身份，也不会用于广告、画像或与第三方共享。\n\n不会上传账号、密码、截图、游戏画面、文件内容或原始错误文本。错误相关信息会在本地处理后，仅以上报错误类型或匿名指纹的形式发送。\n\n当前可能收集的内容包括：程序版本、系统类型、界面语言、OCR 模式、部分功能开关与通知偏好配置快照、任务执行结果，以及匿名化后的错误信息。\n\n这些数据仅用于分析功能使用情况、发现兼容性问题、评估版本稳定性和排查共性故障。"),
+            self.window()
+        )
+        message.cancelButton.hide()
+        message.yesButton.setText(tr("确认"))
+        message.exec()
 
     def __resetDivergentUniverseRunCount(self):
         DivergentUniverse.reset_recorded_run_count()

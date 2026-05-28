@@ -120,16 +120,31 @@ class OCR:
             self.logger.info("OpenVINO OCR 实例已重新初始化")
 
     def _disable_openvino_telemetry(self):
-        """在导入 OpenVINO 前显式关闭 telemetry，避免额外的统计请求和子进程。"""
+        """在导入 OpenVINO 前显式关闭 telemetry，避免额外统计和写入用户目录。"""
         try:
             from openvino_telemetry.utils.opt_in_checker import ConsentCheckResult, OptInChecker
         except Exception:
             return
 
         try:
-            checker = OptInChecker()
-            if checker.check(enable_opt_in_dialog=False) != ConsentCheckResult.DECLINED:
-                checker.update_result(ConsentCheckResult.DECLINED)
+            if getattr(OptInChecker, "_march7th_telemetry_disabled", False):
+                return
+
+            def disabled_check(_checker_self, enable_opt_in_dialog=False, disable_in_ci=False):
+                return ConsentCheckResult.DECLINED
+
+            def disabled_create_or_check_consent_dir(_checker_self):
+                return False
+
+            def disabled_update_result(_checker_self, _result):
+                return False
+
+            OptInChecker.check = disabled_check
+            OptInChecker.create_or_check_consent_dir = disabled_create_or_check_consent_dir
+            OptInChecker.update_result = disabled_update_result
+            OptInChecker._march7th_telemetry_disabled = True
+            if self.logger is not None:
+                self.logger.debug("已通过进程内补丁禁用 OpenVINO telemetry")
         except Exception as e:
             if self.logger is not None:
                 self.logger.debug(f"关闭 OpenVINO telemetry 失败: {e}")
@@ -507,6 +522,13 @@ class OCR:
                 openvino_warning_emitted = True
             return EngineType.ONNXRUNTIME
 
+        def resolve_mode_for_engine(engine_type, use_dml_flag=False):
+            if use_dml_flag:
+                return OCR_MODE_ONNX_DML
+            if engine_type == EngineType.OPENVINO:
+                return OCR_MODE_OPENVINO_CPU
+            return OCR_MODE_ONNX_CPU
+
         effective_mode = selected_mode
         if force_cpu:
             effective_mode = OCR_MODE_CPU
@@ -553,7 +575,7 @@ class OCR:
             else:
                 prefer_engine = choose_cpu_fallback_engine()
 
-        return prefer_engine, use_dml, effective_mode
+        return prefer_engine, use_dml, resolve_mode_for_engine(prefer_engine, use_dml_flag=use_dml)
 
     def instance_ocr(self, log_level: str = "error", force_cpu: bool = False, force_onnx: bool = False):
         """实例化OCR，若ocr实例未创建，则创建之"""
