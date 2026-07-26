@@ -9,6 +9,7 @@ import requests
 import time
 import io
 import ctypes
+import socket
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, SessionNotCreatedException, StaleElementReferenceException
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -226,6 +227,34 @@ class CloudGameController(GameControllerBase):
         self.log_debug(f"driver_path = {driver_path}")
         return browser_path, driver_path
 
+    @staticmethod
+    def _is_port_available(port: int) -> bool:
+        """检查端口是否可绑定（真实 bind 试探，TIME_WAIT 也会判不可用）"""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', port))
+            return True
+        except OSError:
+            return False
+
+    @staticmethod
+    def _get_debug_port_from_cmdline(proc) -> int | None:
+        """从进程命令行解析 --remote-debugging-port 的真实端口"""
+        try:
+            for arg in proc.cmdline():
+                if arg.startswith("--remote-debugging-port="):
+                    return int(arg.split("=", 1)[1])
+        except (psutil.Error, ValueError, IndexError):
+            return None
+        return None
+
+    def _find_available_port(self, start_port: int, max_retry: int = 10) -> int:
+        """从 start_port 开始递增找第一个可用端口"""
+        for port in range(start_port, start_port + max_retry):
+            if self._is_port_available(port):
+                return port
+        raise RuntimeError(f"无法找到可用端口（范围: {start_port}-{start_port + max_retry - 1}）")
+
     def _get_browser_arguments(self, headless) -> list[str]:
         args = [
             self.BROWSER_TAG,   # 标记浏览器是由脚本启动
@@ -235,7 +264,6 @@ class CloudGameController(GameControllerBase):
             f"--force-device-scale-factor={float(self.cfg.browser_scale_factor)}",  # 设置缩放
             f"--app={self.GAME_URL}",   # 以应用模式启动
             "--disable-blink-features=AutomationControlled",  # 去除自动化痕迹，防止被人机验证
-            f"--remote-debugging-port={self.cfg.browser_debug_port}",   # 调试端口，可用于复用浏览器
         ]
         # if not headless:
         #     args += [
@@ -254,9 +282,7 @@ class CloudGameController(GameControllerBase):
                 "--headless=new",  # 无窗口模式
                 "--mute-audio",    # 后台静音
             ]
-            if is_docker_started():
-                # Docker 环境下需要额外参数
-                args.append("--no-sandbox")
+
         if self.cfg.cloud_game_fullscreen_enable and not headless:
             args.append("--start-fullscreen")  # 全屏启动
         args.extend(self.cfg.browser_launch_argument)  # 用户自定义参数
@@ -268,6 +294,17 @@ class CloudGameController(GameControllerBase):
         integrated = self.cfg.browser_type == "integrated"
         first_run = False
         browser_path, driver_path = self._prepare_browser_and_driver(browser_type, integrated)
+
+        # 端口可用性检测：若配置端口被占，递增找一个空闲端口
+        try:
+            configured_port = int(self.cfg.browser_debug_port)
+        except (TypeError, ValueError):
+            raise RuntimeError(f"browser_debug_port 配置无效: {self.cfg.browser_debug_port!r}")
+        actual_port = configured_port
+        if not self._is_port_available(configured_port):
+            self.log_warning(f"端口 {configured_port} 被占用，正在查找可用端口...")
+            actual_port = self._find_available_port(configured_port)
+            self.log_info(f"将使用端口 {actual_port} 启动浏览器")
 
         if not os.path.exists(self.user_profile_path):
             first_run = True
@@ -296,17 +333,25 @@ class CloudGameController(GameControllerBase):
         # 关掉 headless 不匹配的浏览器，防止端口冲突
         if self.close_all_m7a_browser(headless=not headless):
             self.log_info(f"已关闭正在运行的{'前台' if headless else '后台'}浏览器")
-        if self.get_m7a_browsers(headless=headless):
-            # 如果发现已经有浏览器，尝试直接连接
+        existing = self.get_m7a_browsers(headless=headless)
+        if existing:
+            # 从进程命令行解析真实调试端口（首次启动可能已回退到其它端口）
+            reconnect_port = self._get_debug_port_from_cmdline(existing[0]) or configured_port
             try:
-                options.debugger_address = f"127.0.0.1:{self.cfg.browser_debug_port}"
+                options.debugger_address = f"127.0.0.1:{reconnect_port}"
                 self.driver = webdriver_type(service=service, options=options)
                 self.log_info("已连接到现有浏览器")
-                return  # 连接成功，直接返回
+                return
             except Exception:
-                self.log_info(f"连接现有浏览器失败")
-                self.close_all_m7a_browser()  # 连接失败，关闭所有浏览器
-                options = None
+                self.log_info("连接现有浏览器失败")
+                self.close_all_m7a_browser()
+                # 重连失败后重建 options，避免 debugger_address 残留导致 Selenium 尝试重连而非启动新浏览器
+                if browser_type == "chrome":
+                    options = ChromeOptions()
+                elif browser_type == "edge":
+                    options = EdgeOptions()
+                else:
+                    options = ChromiumOptions()
 
         self.log_info(f"正在启动 {browser_type} 浏览器")
         options.binary_location = browser_path
@@ -316,6 +361,9 @@ class CloudGameController(GameControllerBase):
         # 设置浏览器启动参数
         for arg in self._get_browser_arguments(headless=headless):
             options.add_argument(arg)
+        options.add_argument(f"--remote-debugging-port={actual_port}")
+        if integrated or is_docker_started():  # 修复 Windows 部分情况下启动 Chrome 报错
+            options.add_argument("--no-sandbox")
 
         # 清理失效的断链 (Broken Symlinks) 防止浏览器无法启动
         if is_docker_started():
@@ -1540,7 +1588,54 @@ class CloudGameController(GameControllerBase):
         """, text)
 
     def change_auto_battle(self, status: bool) -> None:
-        """从 local storage 中读取并修改 auto battle"""
+        """
+        从 local storage 中读取并修改 auto battle
+
+        云·星穹铁道 兼容模式技术分析：
+        - 配置存储位置: localStorage, 键名: clgm_web_app_settings_hkrpg_cn
+        - 配置字段: compatibleModeSwitch (boolean)
+        - 核心作用: 强制使用 H264 编码，禁用 HEVC/H265
+
+        视频编码模式对比：
+        | 模式           | enableHevc | enableWrappedHevc | compatibleMode | 渲染元素   |
+        |---------------|------------|-------------------|----------------|-----------|
+        | DefaultH264   | ❌         | ❌                 | ❌              | <video>   |
+        | ForceH264     | ❌         | ❌                 | ✅              | <video>   |
+        | WrappedH265   | ❌         | ✅                 | ❌              | <canvas>  |
+        | NativeH265    | ✅         | ❌                 | ❌              | <video>   |
+
+        编码选择优先级:
+        1. compatibleModeSwitch=true → ForceH264 (强制H264)
+        2. hevcCodecSwitch=true → NativeH265 (浏览器原生HEVC解码)
+        3. wrappedHevcSwitch=true → WrappedH265 (自定义HEVC Pipeline, 需要 hasHevcHardwareDecoder + hasInsertableStreams)
+        4. 默认 → DefaultH264
+
+        NativeH265 vs WrappedH265 区别:
+        - NativeH265: 浏览器原生 HEVC 解码，性能好但兼容性差 (Safari/部分Edge/Chrome支持)
+        - WrappedH265: 通过修改 SDP packetization mode 将 H264 RTP 包装为 HEVC 格式，使用自定义 Pipeline 解码，兼容性更好
+
+        硬件解码与编码方式关系:
+        - H264 (Default/Force): 不强制依赖硬件解码，软件解码也能工作 (但性能较差)
+        - H265/HEVC (Native/Wrapped): 必须有硬件解码支持，否则会失败并触发回落
+        - 硬件检测: hasHevcHardwareDecoder (HEVC硬件解码器) + hasInsertableStreams (Insertable Streams API)
+        - WrappedH265 支持条件: isWrappedHevcPipelineSupported = hasHevcHardwareDecoder && hasInsertableStreams
+
+        Docker/无GPU环境编码情况:
+        - 通常没有 GPU 直通，hasHevcHardwareDecoder = false
+        - WrappedH265 和 NativeH265 都不可用
+        - 只能使用 H264 (DefaultH264 或 ForceH264)
+        - 例外: forceSupportH265 配置可强制启用 H265 (预览模式/测试用)
+        - hevcCodecSwitch 默认值来自服务器 compatConfig.enableHevc 配置
+
+        H264 Profile 区别:
+        - 兼容模式 (ForceH264): 只用 Baseline profile (最广泛兼容，性能最低)
+        - 非兼容模式 (DefaultH264): 可用 High/Main/Baseline profile (性能更好)
+
+        HEVC 失败回落流程:
+        - 触发条件: RtcSDKHEVCDecodingFailureDetected (-1036), RtcSDKOnPlayTimeout (-1037), RtcSDKWrappedHEVCPipelineFailed (-1038)
+        - 如果已开启兼容模式: 直接重连
+        - 如果未开启兼容模式: 弹窗提示用户选择 (退出游戏 / 开启兼容模式 / 下载客户端)
+        """
         ls = json.loads(self.driver.execute_script("return JSON.stringify(localStorage)"))
         cloud = json.loads(ls.get("cg_hkrpg_cn_cloudData", "{}"))
         cloud.setdefault("value", {})
@@ -1564,6 +1659,12 @@ class CloudGameController(GameControllerBase):
         save["IntDicts"] = int_dicts
         cloud["value"]["RPGCloudSave"] = json.dumps(save)
         ls["cg_hkrpg_cn_cloudData"] = json.dumps(cloud)
+
+        # # 开启兼容模式
+        # app_settings = json.loads(ls.get("clgm_web_app_settings_hkrpg_cn", "{}"))
+        # app_settings["compatibleModeSwitch"] = True
+        # ls["clgm_web_app_settings_hkrpg_cn"] = json.dumps(app_settings)
+        # self.log_debug("设置兼容模式为开启")
 
         for k, v in ls.items():
             self.driver.execute_script(f"localStorage.setItem('{k}', arguments[0]);", v)
